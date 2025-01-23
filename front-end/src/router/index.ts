@@ -6,16 +6,17 @@ import rank from '@/components/rank.vue'
 import register from '@/components/register.vue'
 import login from '@/components/login.vue'
 import forgetpwd from '@/components/forgetpwd.vue'
+import program from '@/components/program.vue'
 const router=createRouter({
     history:createWebHistory(),
     routes:[
         {
-            path:'/homepage',
-            component:homepage
+            path:'/',
+            component:homepage,
         },
         {
             path:'/questionbank',
-            component:questionbank
+            component:questionbank,
         },
         {
             path:'/testingrecord',
@@ -36,6 +37,10 @@ const router=createRouter({
         {
             path:'/forgetpwd',
             component:forgetpwd
+        },
+        {
+            path:'/program',
+            component:program
         }
     ]
 })

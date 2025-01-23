@@ -1,209 +1,275 @@
 <template>
-    <br>
-    <br>
-    <br>
-    <form @submit.prevent="submitForm" class="body">
-        <h2>欢迎注册</h2>
-        <input class="kuang1" v-model="username" placeholder="请输入用户名" minlength="2" maxlength="10">
-        <p v-if="!isValidUsername" style="color: red;"><font size="1px">用户名长度必须在2到10位之间</font></p><br>
-        <input class="kuang2" v-model="password" type="password" placeholder="请输入密码" minlength="8" maxlength="20">
-        <p v-if="!isValidPassword" style="color: red;"><font size="1px">密码长度必须在8到20位之间</font></p><br>
-        <input class="kuang3" v-model="confirmPassword" type="password" placeholder="再次输入密码">
-        <p v-if="password!== confirmPassword" style="color: red;"><font size="1px">两次输入的密码不一致</font></p><br>
-        <div>
-        <img :src="captchaImage" @click="refreshCaptcha" alt="图片" class="kuang10"/>
-        <button @click="refreshCaptcha" class="kuang8">刷新</button>
-        <input class="kuang5" v-model="captchaInput" type="text" id="captcha" required placeholder="请输入图片验证码">
+  <div class="body2">
+  <br>
+  <br>
+  <br>
+  <div>
+    <!-- 注册表单容器 -->
+    <div class="container">
+      <div class="form-header">
+        <a href="#" class="logo">注册</a>
+      </div>
+      <form>
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" placeholder="6至16位，建议大小写字母、数字">
         </div>
-        <div v-if="Message1"><font color="red" size="1px">{{ Message1 }}</font></div><br>
-        <div>
-        <form @submit.prevent="postEmail">
-        <div><input class="kuang6" v-model="email" type="email" id="email" required placeholder="请输入邮箱">
-        <button type="submit" class="kuang9">发送</button>
+
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" placeholder="密码">
         </div>
-        <div v-if="Message3"><font color="red" size="1px">{{ Message3 }}</font></div>
-        </form><br>
-        <input class="kuang1" v-model="verificationCode" type="text" id="verificationCode" required placeholder="请输入邮箱验证码">
+
+        <div class="form-group">
+          <label>确认密码</label>
+          <input type="password" placeholder="请再输入一遍">
         </div>
-        <br>
-        <button class="kuang4" type="submit"><font class="font1">注册</font></button>
-        <div v-if="Message2"><font color="red" size="1px">{{ Message2 }}</font></div>
-    </form>
+
+        <div class="form-group">
+          <label>验证码信息</label>
+          <div class="captcha-group">
+            <input type="text" placeholder="右侧图形验证码">
+            <div class="captcha-image">\m4j</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="captcha-group">
+            <input type="text" placeholder="邮箱">
+            <button type="button" class="send-code">发送验证码</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <input type="text" placeholder="6位数字验证码">
+        </div>
+
+        <button type="submit" class="register-btn">注册</button>
+
+        <div class="agreement">
+          <label>
+            <input type="checkbox"> 同意
+            <a href="#">《用户协议》</a>
+          </label>
+        </div>
+
+        <div class="login-link">
+          已有账号？<a href="#">登录</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  </div>
 </template>
-<script setup lang="ts" name="Register">
-import { ref, computed } from 'vue'
-import axios from 'axios'
-import router from '@/router'
-let username = ref('')
-let password = ref('')
-let confirmPassword = ref('')
-let captchaInput = ref('')
-let captchaImage = ref('')
-let Message1 = ref('')
-let email = ref('')
-let verificationCode = ref('')
-let Message3 = ref('')
-let Message2=ref('')
-let captchaToken=ref('')
-let emailVerifyKey=ref('')
-const isValidUsername = computed(() => {
-    return username.value.length >= 2 && username.value.length <= 10;
-})
-const isValidPassword = computed(() => {
-    return password.value.length >= 8 && password.value.length <= 20;
-})
-const refreshCaptcha = async () => {
-     // interface1
-     const response = await axios.get('/api/getCaptcha');
-      captchaImage.value='data:image/png;base64,'+response.data.data.imgOnBase64
-      captchaToken.value=response.data.data.captchaToken
-      if(response.data.errCode!=1000){
-        Message1.value='获取验证码图片失败'
-      }
-    }
-const submitForm = async () => {
-    if (!isValidUsername.value) {
-        return;
-    }
-    if (!isValidPassword.value) {
-        return;
-    }
-    if (password.value!== confirmPassword.value) {
-        return;
-    }
-    // interface2
-         const response = await axios.post('/api/register', {
-          userName:username.value,
-          userPassword:password.value,
-          captchaText: captchaInput.value,
-          userEmail: email.value, 
-          emailVerifycode: verificationCode.value,
-          emailVerifyKey:emailVerifyKey.value,
-          captchaToken:captchaToken.value
-        });
-        if (response.data.errCode==1000) {
-          alert('注册成功');
-          router.push('/login')
-        } else {
-          Message2.value =  '注册失败，请检查输入';
-        }
-      }
-const postEmail = async () => {
-        // interface3
-        const response = await axios.post(`/api/getEmailCode/${email}`);
-        if (response.data.errCode==1000) {
-          Message3.value = '验证邮件已发送，请查看您的邮箱。';
-          emailVerifyKey=response.data.data.emailVerifyKey
-        } 
-        else {
-          if(response.data.errCode==1009){
-          Message3.value='邮箱已被使用'
-          }
-          if(response.data.errCode==1001){
-            Message3.value='服务器内部错误'
-          }
-        }
-      }
+
+<script setup>
+// 这里可以添加组件的逻辑代码，例如处理表单提交等
+// 标签切换功能
+import { onMounted } from 'vue';
+
+onMounted(() => {
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelector('.tab.active').classList.remove('active');
+      tab.classList.add('active');
+    });
+  });
+});
 </script>
+
 <style scoped>
-.kuang1{
-left: 0px;
-top: 0px;
-width: 300px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+/* 全局样式重置 */
+.body2{
+  padding: 40px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }
-.kuang2{
-left: 0px;
-top: 0px;
-width: 300px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-.kuang3{
-left: 0px;
-top: 0px;
-width: 300px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: rgba(234, 238, 241, 255); /* 设置页面背景颜色 */
+  color: #333;
+  /* 图片背景 */
+  /* background-image: url('注册.jpg');
+  background-size: cover;
+  background-repeat: no-repeat; */
 }
-.kuang4{
-left: 0px;
-top: 0px;
-width: 300px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(92, 119, 179, 1);
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
 }
-.kuang5{
-left: 0px;
-top: 0px;
-width: 150px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+
+.logo {
+  color: #3498db;
+  font-size: 1.5rem;
+  text-decoration: none;
+  font-weight: bold;
 }
-.kuang6{
-left: 0px;
-top: 0px;
-width: 255px;
-height: 40px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+
+.nav-links a {
+  color: #666;
+  text-decoration: none;
+  margin-right: 1rem;
 }
-.kuang7{
-left: 0px;
-top: 0px;
-width: 205px;
-height: 20px;
-opacity: 1;
-border-radius: 10px;
-background: rgba(255, 255, 255, 1);
-box-shadow:inset 0px 3px 7px  rgba(34, 24, 21, 0.35);
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
-.font1{
-font-size: 20px;
-font-weight: 400;
-letter-spacing: 0px;
-line-height: 26px;
-color: rgba(255, 254, 254, 1);
-text-align: left;
-vertical-align: top;
+
+.nav-right a {
+  color: #666;
+  text-decoration: none;
 }
-form{
-display: flex;
-flex-direction: column;
-align-items: center;
+
+.nav-right.register {
+  color: #3498db;
 }
-.body{
-height:700px;
-background: rgba(177, 209, 240, 0.28);
+
+/* 主要内容区域 */
+.container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.kuang8{
-width:50px;
-height:40px;
+
+.form-header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
-.kuang9{
-width:45px;
-height:40px;
+
+.form-header img {
+  width: 120px;
+  margin-bottom: 1rem;
 }
-.kuang10{
-width:100px;
-height:40px;
-vertical-align: middle;
+
+.form-header p {
+  color: #666;
+}
+
+/* 表单标签页 */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #eee;
+  margin-bottom: 1.5rem;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: #666;
+}
+
+.tab.active {
+  color: #3498db;
+  border-bottom: 2px solid #3498db;
+  margin-bottom: -2px;
+}
+
+/* 表单样式 */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #666;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* 验证码区域 */
+.captcha-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.captcha-group input {
+  flex: 1;
+}
+
+.captcha-image {
+  width: 100px;
+  height: 38px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.send-code {
+  padding: 0 1rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* 注册按钮 */
+.register-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.register-btn:hover {
+  background: #2980b9;
+}
+
+/* 协议同意 */
+.agreement {
+  margin-top: 1rem;
+  text-align: center;
+  color: #666;
+}
+
+.agreement a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+/* 登录链接 */
+.login-link {
+  margin-top: 1rem;
+  text-align: center;
+  color: #666;
+}
+
+.login-link a {
+  color: #3498db;
+  text-decoration: none;
 }
 </style>
