@@ -1,72 +1,102 @@
 <template>
+  <form @submit.prevent="submitForm" class="body">
   <div class="body2">
   <br>
   <br>
   <br>
-  <div>
-    <!-- 注册表单容器 -->
+    <div>
     <div class="container">
       <div class="form-header">
         <a href="#" class="logo">注册</a>
       </div>
-      <form>
         <div class="form-group">
           <label>用户名</label>
-          <input type="text" placeholder="6至16位，建议大小写字母、数字">
+          <input type="text" placeholder="2至10位，建议大小写字母、数字" v-model="username" :class="{'is-invalid':isInvalid}">
+          <p v-if="isInvalid" class="warning">用户名长度应在2-10个字符之间</p>
         </div>
-
         <div class="form-group">
           <label>密码</label>
-          <input type="password" placeholder="密码">
+          <input type="password" placeholder="8-20位，建议大小写字母、数字" v-model="password" :class="{'is-invalid':isInvalid1}">
+          <p v-if="isInvalid1" class="warning">密码长度应在8-20个字符之间</p>
         </div>
-
         <div class="form-group">
           <label>确认密码</label>
-          <input type="password" placeholder="请再输入一遍">
+          <input type="password" placeholder="请再输入一遍" v-model="confirmPassword" :class="{'is-invalid':isInvalid2}">
+          <p v-if="isInvalid2" class="warning">两次输入的密码不一致</p>
         </div>
-
         <div class="form-group">
           <label>验证码信息</label>
           <div class="captcha-group">
-            <input type="text" placeholder="右侧图形验证码">
-            <div class="captcha-image">\m4j</div>
+            <input type="text" placeholder="右侧图形验证码" v-model="captchaInput">
+            <img :src="captchaImage" @click="refreshCaptcha" alt="图片" class="captcha-image">
           </div>
         </div>
-
+        <form @submit.prevent="postEmail">
         <div class="form-group">
           <div class="captcha-group">
-            <input type="text" placeholder="邮箱">
+            <input type="email" placeholder="邮箱" v-model="email" id="email" required>
             <button type="button" class="send-code">发送验证码</button>
+            <p v-if="isInvalid3" class="warning">{{ isInvalid3 }}</p>
           </div>
         </div>
-
+        </form>
         <div class="form-group">
-          <input type="text" placeholder="6位数字验证码">
+          <input v-model="verificationCode" type="text" id="verificationCode" required placeholder="请输入邮箱验证码">
         </div>
-
+        <div>
         <button type="submit" class="register-btn">注册</button>
-
-        <div class="agreement">
-          <label>
-            <input type="checkbox"> 同意
-            <a href="#">《用户协议》</a>
-          </label>
+        <p v-if="Message2" class="warning">{{ Message2 }}</p>
         </div>
-
         <div class="login-link">
-          已有账号？<a href="#">登录</a>
+          已有账号？<RouterLink to="/login">登录</RouterLink>
         </div>
-      </form>
-    </div>
+      </div>
   </div>
   </div>
+  </form>
 </template>
 
 <script setup>
 // 这里可以添加组件的逻辑代码，例如处理表单提交等
 // 标签切换功能
-import { onMounted } from 'vue';
-
+import { ref,watch,onMounted } from 'vue';
+import axios from 'axios'
+import router from '@/router'
+import { RouterLink } from 'vue-router';
+const username=ref('')
+const password=ref('')
+const isInvalid=ref(false)
+const isInvalid1=ref(false)
+const isInvalid2=ref(false)
+const confirmPassword=ref('')
+const captchaImage = ref('');
+const captchaToken = ref('');
+const email=ref('')
+const verificationCode=ref('')
+const isInvalid3=ref('')
+const emailVerifyKey=ref('')
+const captchaInput=ref('')
+const Message2=ref('')
+const postEmail = async () => {
+        const response = await axios.post(`/api/getEmailCode/${email}`);
+        if (response.data.errCode==1000) {
+          isInvalid3.value = '验证邮件已发送，请查看您的邮箱。';
+          emailVerifyKey=response.data.data.emailVerifyKey
+        } 
+        else {
+          if(response.data.errCode==1009){
+          isInvalid3.value='邮箱已被使用'
+          }
+          if(response.data.errCode==1001){
+            isInvalid3.value='服务器内部错误'
+          }
+        }
+      }
+const refreshCaptcha = async () => {
+      const response = await axios.get('/api/getCaptcha');
+      captchaImage.value='data:image/png;base64,'+response.data.data.imgOnBase64,
+      captchaToken.value=response.data.data.captchaToken
+  }
 onMounted(() => {
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => {
@@ -76,9 +106,43 @@ onMounted(() => {
     });
   });
 });
+watch(username, (newValue) => {
+  isInvalid.value = newValue.length < 2 || newValue.length > 10;
+});
+watch(password, (newValue) => {
+  isInvalid1.value = newValue.length < 8 || newValue.length > 10;
+});
+watch(confirmPassword, (newValue) => {
+  isInvalid2.value = newValue !== password.value;
+});
+const submitForm = async () => {
+  const response = await axios.post('/api/register', {
+          userName:username.value,
+          userPassword:password.value,
+          captchaText: captchaInput.value,
+          userEmail: email.value, 
+          emailVerifycode: verificationCode.value,
+          emailVerifyKey:emailVerifyKey.value,
+          captchaToken:captchaToken.value
+        });
+        if (response.data.errCode==1000) {
+          alert('注册成功');
+          router.push('/login')
+        } else {
+          Message2.value =  '注册失败，请检查输入';
+        }
+}
 </script>
 
 <style scoped>
+.is-invalid {
+  border: 1px solid red;
+}
+/* 警告信息的样式 */
+.warning {
+  color: red;
+  font-size: 12px;
+}
 /* 全局样式重置 */
 .body2{
   padding: 40px;

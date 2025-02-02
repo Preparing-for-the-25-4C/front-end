@@ -13,28 +13,28 @@
 
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <input type="text" placeholder="用户名或电子邮箱" required>
+          <input type="text" placeholder="用户名" required v-model="username">
         </div>
 
         <div class="form-group">
-          <input type="password" placeholder="密码" required>
+          <input type="password" placeholder="密码" required v-model="password">
         </div>
 
         <div class="form-group">
           <div class="captcha-group">
-            <input type="text" placeholder="右侧图形验证码" required>
-            <div class="captcha-image">zq8</div>
+            <input type="text" placeholder="右侧图形验证码" required v-model="captchaInput">
+            <img :src="captchaImage" @click="refreshCaptcha" alt="图片" class="captcha-image">
           </div>
         </div>
 
         <button type="submit" class="login-btn">登录</button>
 
         <div class="forgot-password">
-          <a href="#">忘记密码</a>
+          <RouterLink to="/forgetpwd">忘记密码</RouterLink>
         </div>
 
         <div class="register-link">
-          没有账号？<a href="#">注册</a>
+          没有账号？<RouterLink to="/register">注册</RouterLink>
         </div>
       </form>
     </div>
@@ -42,14 +42,36 @@
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-
-// 处理表单提交的函数
-const handleSubmit = () => {
-  // 这里添加登录逻辑
-  console.log('登录表单提交');
-};
+<script setup lang="ts">
+import { ref} from 'vue';
+import axios from 'axios'
+import router from '@/router'
+import { RouterLink } from 'vue-router';
+const captchaImage = ref('');
+const captchaToken = ref('');
+const username = ref('');
+const password = ref('');
+const captchaInput = ref('');
+const refreshCaptcha = async () => {
+      const response = await axios.get('/api/getCaptcha');
+      captchaImage.value='data:image/png;base64,'+response.data.data.imgOnBase64,
+      captchaToken.value=response.data.data.captchaToken
+  }
+  const handleSubmit = async () => {
+        const response = await axios.post('/api/login', {
+           userName: username.value,
+           userPassword: password.value,
+           captchaText: captchaInput.value,
+           captchaToken:captchaToken.value 
+          });
+        if (response.data.errCode==1000) {
+          alert('登录成功');
+          localStorage.setItem('token', response.data.data.token);
+          localStorage.setItem('perms', JSON.stringify(response.data.data.perms));
+          localStorage.setItem('loginUser', response.data.data.loginUser);
+          router.push('/homepage')
+        } 
+  }
 </script>
 <style scoped>
 .body2{
@@ -196,12 +218,12 @@ body {
 .captcha-image {
   width: 100px;
   height: 38px;
-  background: #000;
+  background: #f0f0f0;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #52ff00;
+  color: #666;
   font-family: monospace;
   font-size: 1.2rem;
 }
