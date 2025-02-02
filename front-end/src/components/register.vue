@@ -110,7 +110,7 @@ watch(username, (newValue) => {
   isInvalid.value = newValue.length < 2 || newValue.length > 10;
 });
 watch(password, (newValue) => {
-  isInvalid1.value = newValue.length < 8 || newValue.length > 10;
+  isInvalid1.value = newValue.length < 8 || newValue.length > 20;
 });
 watch(confirmPassword, (newValue) => {
   isInvalid2.value = newValue !== password.value;
