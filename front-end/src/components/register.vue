@@ -90,6 +90,9 @@ const postEmail = async () => {
           if(response.data.errCode==1001){
             isInvalid3.value='服务器内部错误'
           }
+          if(response.data.errCode==1004){
+            alert('用户操作太频繁，请稍后再试')
+          }
         }
       }
 const refreshCaptcha = async () => {
@@ -129,9 +132,16 @@ const submitForm = async () => {
           alert('注册成功');
           router.push('/login')
         } else {
+          if(response.data.errCode==1004){
+            alert('用户操作太频繁，请稍后再试')
+          }else{
           Message2.value =  '注册失败，请检查输入';
         }
 }
+}
+onMounted(() => {
+  refreshCaptcha();
+});
 </script>
 
 <style scoped>

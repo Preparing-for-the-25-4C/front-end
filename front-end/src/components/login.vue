@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref} from 'vue';
+import { ref,onMounted} from 'vue';
 import axios from 'axios'
 import router from '@/router'
 import { RouterLink } from 'vue-router';
@@ -71,7 +71,15 @@ const refreshCaptcha = async () => {
           localStorage.setItem('loginUser', response.data.data.loginUser);
           router.push('/homepage')
         } 
-  }
+        else {
+          if(response.data.errCode==1004){
+            alert('用户操作太频繁，请稍后再试')
+          }
+        }
+      }
+      onMounted(() => {
+  refreshCaptcha();
+});
 </script>
 <style scoped>
 .body2{

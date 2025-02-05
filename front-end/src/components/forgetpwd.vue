@@ -53,7 +53,6 @@ import router from '@/router';
       Message3.value = '请输入有效的邮箱地址';
       return;
     }
-    //interface1
     const response = await axios.post(`/api/getEmailCode/${email}`);
       if (response.data.errCode==1000) {
         Message3.value = '验证邮件已发送，请查看您的邮箱。';
@@ -66,6 +65,9 @@ import router from '@/router';
         if(response.data.errCode==1001){
           Message3.value='服务器内部错误'
         }
+        if(response.data.errCode==1004){
+          alert('用户操作太频繁，请稍后再试')
+        }
       }
   }
 
@@ -74,7 +76,6 @@ import router from '@/router';
       passwordMessage.value = '两次输入的密码不一致，请重新输入';
       return;
     }
-      //interface2
       const response = await axios.post('/api/modifyPassword', { 
         userEmail: email.value, 
         emailVerifyCode: verificationCode.value,
@@ -85,7 +86,11 @@ import router from '@/router';
         passwordMessage.value = '密码重置成功';
         router.push('/login')
       } else {
+        if(response.data.errCode==1004){
+          alert('用户操作太频繁，请稍后再试')
+        }else{
         passwordMessage.value = '密码重置失败，请稍后重试';
+           }
       }
   }
   const isValidEmail = (email:any) => {

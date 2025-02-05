@@ -6,10 +6,6 @@
       <div class="filter-row">
         <div class="filter-group">
           <div class="filter-item">
-            <label>由用户名或UID</label>
-            <input type="text" class="filter-input" v-model="filters.user">
-          </div>
-          <div class="filter-item">
             <label>由题目</label>
             <input type="text" class="filter-input" v-model="filters.problem">
           </div>
@@ -29,19 +25,21 @@
             <label>由语言</label>
             <select class="filter-select" v-model="filters.language">
               <option value="">全部</option>
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-              <option value="python">Python</option>
+              <option value="C">C</option>
+              <option value="C++">C++</option>
+              <option value="Java">Java</option>
+              <option value="JavaScript">JavaScript</option>
+              <option value="Python">Python</option>
             </select>
           </div>
         </div>
         <div class="filter-actions">
-          <button class="filter-button primary">筛选</button>
-          <button class="filter-button">重置</button>
+          <button class="filter-button primary" @click="filterSubmissions">筛选</button>
+          <button class="filter-button" @click="resetFilters">重置</button>
         </div>
       </div>
     </div>
-<br>
+    <br>
     <div class="table-container">
       <table class="submissions-table">
         <thead>
@@ -50,13 +48,12 @@
             <th>题目</th>
             <th>递交者</th>
             <th>时间</th>
-            <th>内存</th>
             <th>语言</th>
             <th>递交时间</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="submission in submissions" :key="submission.id">
+          <tr v-for="submission in filteredSubmissions" :key="submission.id">
             <td class="status-cell">
               <span :class="['status-icon', submission.status]">
                 {{ submission.status === 'accepted' ? '✓' : '✕' }}
@@ -65,7 +62,6 @@
             <td>{{ submission.problem }}</td>
             <td>{{ submission.submitter }}</td>
             <td>{{ submission.time }}</td>
-            <td>{{ submission.memory }}</td>
             <td>{{ submission.language }}</td>
             <td>{{ submission.submissionTime }}</td>
           </tr>
@@ -76,25 +72,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const filters = ref({
-  user: '',
   problem: '',
   contest: '',
   status: '',
   language: ''
 })
 
-const submissions = ref([
+const originalSubmissions = ref([
   {
     id: 1,
     status: 'accepted',
     problem: 'P1 跳台阶',
     submitter: 'czy',
     time: '51ms',
-    memory: '54kB',
-    language: 'c++17',
+    language: 'C++',
     submissionTime: '4分钟前'
   },
   {
@@ -103,11 +97,33 @@ const submissions = ref([
     problem: 'P2 动态规划',
     submitter: 'user2',
     time: '62ms',
-    memory: '48kB',
-    language: 'python3',
+    language: 'Python',
     submissionTime: '10分钟前'
   }
 ])
+
+const filteredSubmissions = computed(() => {
+  return originalSubmissions.value.filter(submission => {
+    const problemMatch = !filters.value.problem || submission.problem.includes(filters.value.problem)
+    const contestMatch = !filters.value.contest || submission.contest && submission.contest.includes(filters.value.contest)
+    const statusMatch = !filters.value.status || submission.status ===filters.value.status
+    const languageMatch = !filters.value.language || submission.language.includes(filters.value.language)
+    return problemMatch && contestMatch && statusMatch && languageMatch
+  })
+})
+
+const filterSubmissions = () => {
+  // 筛选逻辑已经在 computed 中实现，这里无需额外处理
+}
+
+const resetFilters = () => {
+  filters.value = {
+    problem: '',
+    contest: '',
+    status: '',
+    language: ''
+  }
+}
 </script>
 
 <style scoped>
@@ -158,7 +174,7 @@ const submissions = ref([
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  width: 120px;
+  width: 180px;
 }
 
 .filter-input:focus,
