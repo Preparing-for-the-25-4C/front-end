@@ -16,7 +16,7 @@
         </div>
         <div class="form-group">
           <label>新密码</label>
-          <input type="password" v-model="newPassword" placeholder="请输入新密码">
+          <input type="password" v-model="newPassword" placeholder="请输入新密码,长度应在8-20之间">
         </div>
         <div class="form-group">
           <label>确认新密码</label>
@@ -39,7 +39,7 @@
   </template>
   
   <script setup>
-  import { ref, onMounted } from 'vue';
+  import { ref, onMounted, watch } from 'vue';
   import axios from 'axios';
   
   const selectedAvatarFile = ref(null);
@@ -96,14 +96,14 @@
   const sendEmailVerificationCode = async () => {
       const response = await axios.get(`/api/getEmailCode/${email.value}`);
       if (response.data.errCode === 1000) {
-    isInvalid3.value = '验证邮件已发送，请查看您的邮箱。';
+        emailVerificationMessage.value = '验证邮件已发送，请查看您的邮箱。';
     emailVerifyKey.value = response.data.data.emailVerifyKey;
   } else {
     if (response.data.errCode === 1009) {
-      isInvalid3.value = '邮箱已被使用';
+        emailVerificationMessage.value = '邮箱已被使用';
     }
     if (response.data.errCode === 1001) {
-      isInvalid3.value = '服务器内部错误';
+        emailVerificationMessage.value = '服务器内部错误';
     }
     if (response.data.errCode === 1004) {
       alert('用户操作太频繁，请稍后再试');
