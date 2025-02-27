@@ -18,17 +18,11 @@
       <aside class="far-left-sidebar">
         <div class="sidebar-section">
           <h3 class="sidebar-title">提交记录</h3>
-          <ul class="submission-list" id="submissionList">
-            <li
-              v-for="submission in submissionData"
-              :key="submission.id"
-              class="submission-item"
-              :data-id="submission.id"
-              @click="showSubmissionDetails(submission.id)"
-            >
-              <span
-                :class="`status-indicator ${submission.status === '已通过' ? 'status-accepted' : 'status-wrong'}`"
-              ></span>
+          <ul class="submission-list">
+            <li v-for="submission in submissionData" :key="submission.id" 
+                class="submission-item" 
+                @click="showSubmissionDetails(submission.id)">
+              <span :class="['status-indicator', `status-${submission.status === '已通过' ? 'accepted' : 'wrong'}`]"></span>
               #{{ submission.id }} {{ submission.status }}
             </li>
           </ul>
@@ -36,10 +30,9 @@
         <div class="sidebar-section">
           <h3 class="sidebar-title">题目列表</h3>
           <ul class="problem-list">
-            <li class="problem-item">001. Hello World</li>
-            <li class="problem-item">002. 两数之和</li>
-            <li class="problem-item">003. 无重复字符的最长子串</li>
-            <li class="problem-item">004. 寻找两个正序数组的中位数</li>
+            <li v-for="problem in problems" :key="problem.id" class="problem-item">
+              {{ problem.id }}. {{ problem.title }}
+            </li>
           </ul>
         </div>
       </aside>
@@ -77,28 +70,24 @@
         </div>
 
         <!-- 提交详情覆盖层 -->
-        <div class="submission-details" v-if="showDetails">
-          <span class="close-details" @click="closeDetails">&times;</span>
+        <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
+          <span class="close-details" @click="closeSubmissionDetails">&times;</span>
           <h2>提交详情</h2>
           <div class="submission-info">
-            <p>序号: <span>{{ currentSubmission?.id }}</span></p>
-            <p>状态: <span>{{ currentSubmission?.status }}</span></p>
-            <p>语言: <span>{{ currentSubmission?.language }}</span></p>
-            <p>执行用时: <span>{{ currentSubmission?.time }}</span></p>
-            <p>消耗内存: <span>{{ currentSubmission?.memory }}</span></p>
+            <p>序号: <span>{{ activeSubmission.id }}</span></p>
+            <p>状态: <span>{{ activeSubmission.status }}</span></p>
+            <p>语言: <span>{{ activeSubmission.language }}</span></p>
+            <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
+            <p>消耗内存: <span>{{ activeSubmission.memory }}</span></p>
           </div>
           <h3>提交的代码：</h3>
-          <pre>{{ currentSubmission?.code }}</pre>
+          <pre>{{ activeSubmission.code }}</pre>
         </div>
       </div>
 
       <!-- 右侧代码编辑区域 -->
       <div class="code-panel">
-        <textarea
-          class="code-editor"
-          v-model="code"
-          placeholder="在这里编写代码..."
-        ></textarea>
+        <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
         <div class="output-panel">
           <div class="panel-header">
             <span class="panel-title">运行结果</span>
@@ -114,74 +103,70 @@
   </div>
 </template>
 
-<script lang="ts" setup>
-import { ref } from 'vue';
+<script setup lang="ts">
+import { ref, reactive } from 'vue';
 
-// 代码编辑区域的代码
 const code = ref('');
-// 输出区域的内容
 const output = ref('');
-// 提交记录数据
-const submissionData = ref([
+const isSubmissionDetailsActive = ref(false);
+const activeSubmission = reactive({
+  id: null,
+  status: '',
+  language: '',
+  time: '',
+  memory: '',
+  code: ''
+});
+
+const submissionData = reactive([
   { id: 1, status: '已通过', language: 'C++', time: '2ms', memory: '1.2MB', code: '#include <iostream>\n\nint main() {\n    std::cout << "hello world" << std::endl;\n    return 0;\n}' },
   { id: 2, status: '错误答案', language: 'Python', time: '5ms', memory: '2.1MB', code: 'print("Hello World")' },
   { id: 3, status: '已通过', language: 'Java', time: '8ms', memory: '3.5MB', code: 'public class Solution {\n    public static void main(String[] args) {\n        System.out.println("hello world");\n    }\n}' }
 ]);
-// 是否显示提交详情
-const showDetails = ref(false);
-// 当前选中的提交记录
-const currentSubmission = ref<{
-  id: number;
-  status: string;
-  language: string;
-  time: string;
-  memory: string;
-  code: string;
-} | null>(null);
 
-// 运行代码
-const runCode = () => {
+const problems = [
+  { id: '001', title: 'Hello World' },
+  { id: '002', title: '两数之和' },
+  { id: '003', title: '无重复字符的最长子串' },
+  { id: '004', title: '寻找两个正序数组的中位数' }
+];
+
+function runCode() {
   output.value = '运行中...';
-  // 模拟代码运行
   setTimeout(() => {
     output.value = code.value || 'No output';
   }, 500);
-};
+}
 
-// 清空输出
-const clearOutput = () => {
+function submitCode() {
+  // Implement submission logic here
+  console.log('Code submitted:', code.value);
+}
+
+function clearOutput() {
   output.value = '';
-};
+}
 
-// 复制输出
-const copyOutput = () => {
+function copyOutput() {
   navigator.clipboard.writeText(output.value)
     .then(() => alert('已复制到剪贴板'))
-    .catch((err) => console.error('复制失败:', err));
-};
+    .catch(err => console.error('复制失败:', err));
+}
 
-// 显示提交详情
-const showSubmissionDetails = (submissionId: number) => {
-  const submission = submissionData.value.find((item) => item.id === submissionId);
+function showSubmissionDetails(submissionId: number) {
+  const submission = submissionData.find(s => s.id === submissionId);
   if (submission) {
-    currentSubmission.value = submission;
-    showDetails.value = true;
+    Object.assign(activeSubmission, submission);
+    isSubmissionDetailsActive.value = true;
   }
-};
+}
 
-// 关闭提交详情
-const closeDetails = () => {
-  showDetails.value = false;
-  currentSubmission.value = null;
-};
-
-// 模拟提交代码（这里只是示例，实际需要和后端交互）
-const submitCode = () => {
-  alert('代码已提交');
-};
+function closeSubmissionDetails() {
+  isSubmissionDetailsActive.value = false;
+}
 </script>
 
-<style scoped>
+<style>
 * {
   margin: 0;
   padding: 0;

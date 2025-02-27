@@ -7,6 +7,7 @@ import register from '@/components/register.vue'
 import login from '@/components/login.vue'
 import forgetpwd from '@/components/forgetpwd.vue'
 import program from '@/components/program.vue'
+import settings from '@/components/settings.vue'
 const router=createRouter({
     history:createWebHistory(),
     routes:[
@@ -41,6 +42,10 @@ const router=createRouter({
         {
             path:'/program',
             component:program
+        },
+        {
+            path:'/settings',
+            component:settings
         }
     ]
 })

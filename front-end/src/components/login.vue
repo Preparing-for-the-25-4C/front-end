@@ -1,86 +1,106 @@
 <template>
   <div class="body2">
-  <br>
-  <br>
-  <br>
-  <div>
-    <!-- 登录表单容器 -->
-    <div class="container">
-      <div class="form-header">
-        <!-- <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-QrdIurZoYoARA5LWsnti4j1bAfAQni.png" alt="洛谷 Logo"> -->
-        <a href="#" class="logo">登录</a>
-      </div>
-
-      <form @submit.prevent="handleSubmit">
-        <div class="form-group">
-          <input type="text" placeholder="用户名" required v-model="username">
+    <br>
+    <br>
+    <br>
+    <div>
+      <!-- 登录表单容器 -->
+      <div class="container">
+        <div class="form-header">
+          <a href="#" class="logo">登录</a>
         </div>
 
-        <div class="form-group">
-          <input type="password" placeholder="密码" required v-model="password">
-        </div>
-
-        <div class="form-group">
-          <div class="captcha-group">
-            <input type="text" placeholder="右侧图形验证码" required v-model="captchaInput">
-            <img :src="captchaImage" @click="refreshCaptcha" alt="图片" class="captcha-image">
+        <form @submit.prevent="handleSubmit">
+          <div class="form-group">
+            <input type="text" placeholder="用户名" required v-model="username">
           </div>
-        </div>
 
-        <button type="submit" class="login-btn">登录</button>
+          <div class="form-group">
+            <input type="password" placeholder="密码" required v-model="password">
+          </div>
 
-        <div class="forgot-password">
-          <RouterLink to="/forgetpwd">忘记密码</RouterLink>
-        </div>
+          <div class="form-group">
+            <div class="captcha-group">
+              <input type="text" placeholder="右侧图形验证码" required v-model="captchaInput">
+              <img :src="captchaImage" @click="refreshCaptcha" alt="图片" class="captcha-image">
+            </div>
+          </div>
 
-        <div class="register-link">
-          没有账号？<RouterLink to="/register">注册</RouterLink>
-        </div>
-      </form>
+          <button type="submit" class="login-btn">登录</button>
+
+          <div class="forgot-password">
+            <RouterLink to="/forgetpwd">忘记密码</RouterLink>
+          </div>
+
+          <div class="register-link">
+            没有账号？<RouterLink to="/register">注册</RouterLink>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref,onMounted} from 'vue';
-import axios from 'axios'
-import router from '@/router'
-import { RouterLink } from 'vue-router';
+import { ref, onMounted, inject } from 'vue';
+import axios from 'axios';
+import { RouterLink, useRouter } from 'vue-router';
+
 const captchaImage = ref('');
 const captchaToken = ref('');
 const username = ref('');
 const password = ref('');
 const captchaInput = ref('');
+const router = useRouter();
+
+// 注入更新用户信息的函数
+const updateUserInfo = inject<() => void>('updateUserInfo');
+
 const refreshCaptcha = async () => {
-      const response = await axios.get('/api/getCaptcha');
-      captchaImage.value='data:image/png;base64,'+response.data.data.imgOnBase64,
-      captchaToken.value=response.data.data.captchaToken
-  }
-  const handleSubmit = async () => {
-        const response = await axios.post('/api/login', {
-           userName: username.value,
-           userPassword: password.value,
-           captchaText: captchaInput.value,
-           captchaToken:captchaToken.value 
-          });
-        if (response.data.errCode==1000) {
-          alert('登录成功');
-          localStorage.setItem('token', response.data.data.token);
-          localStorage.setItem('perms', JSON.stringify(response.data.data.perms));
-          localStorage.setItem('loginUser', response.data.data.loginUser);
-          router.push('/homepage')
-        } 
-        else {
-          if(response.data.errCode==1004){
-            alert('用户操作太频繁，请稍后再试')
-          }
-        }
+  const response = await axios.get('/api/getCaptcha');
+  captchaImage.value = 'data:image/png;base64,' + response.data.data.imgOnBase64;
+  captchaToken.value = response.data.data.captchaToken;
+};
+
+const handleSubmit = async () => {
+  try {
+    const response = await axios.post('/api/login', {
+      userName: username.value,
+      userPassword: password.value,
+      captchaText: captchaInput.value,
+      captchaToken: captchaToken.value
+    });
+    if (response.data.errCode === 1000) {
+      alert('登录成功');
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('perms', JSON.stringify(response.data.data.perms));
+      localStorage.setItem('loginUser', response.data.data.loginUser);
+      localStorage.setItem('username', response.data.data.loginUser.userName);
+      // 存储用户头像信息
+      localStorage.setItem('avatar', response.data.data.loginUser.userProfile);
+      localStorage.setItem('email', response.data.data.loginUser.userEmail);
+
+      // 调用更新用户信息的函数
+      if (updateUserInfo) {
+        updateUserInfo();
       }
-      onMounted(() => {
+
+      // 跳转到首页
+      router.push('/');
+    } else {
+      const errorMessage = response.data.errMsg || '登录失败，请稍后再试';
+      alert(errorMessage);
+    }
+  } catch (error) {
+    alert('网络错误，请检查网络连接');
+  }
+};
+
+onMounted(() => {
   refreshCaptcha();
 });
 </script>
+
 <style scoped>
 .body2{
   padding: 40px;

@@ -1,80 +1,78 @@
 <template>
   <br>
   <br>
-  <div>
-    <main class="container">
-      <section class="section">
-        <h2 class="section-title">
-          <span>📚</span>
-          知识图谱
-        </h2>
-        <div class="tags">
-          <span v-for="(tag, index) in knowledgeTags" :key="index" class="tag" :style="tag.style">
-            {{ tag.text }}
-          </span>
-        </div>
-      </section>
-       <br>
-       <br>
-      <section class="section">
-        <h2 class="section-title">推荐算法</h2>
-        <div class="algorithm-grid">
-          <div class="algorithm-card" v-for="i in 3" :key="i"></div>
-        </div>
-      </section>
-      <br>
-      <br>
-      <section class="section">
-        <h2 class="section-title">题单</h2>
-        <div class="problem-grid" id="problemGrid">
-          <div v-for="(problem, index) in problemSets" :key="index" class="problem-card" @click="openModal(index + 1)">
-            <div class="problem-content">
-              <div class="problem-image"></div>
-              <div class="problem-info">
-                <p>{{ problem.title }} 题单{{ index + 1 }}</p>
-                <p>{{ problem.difficulty }} 中等</p>
-                <p>{{ problem.count }} 100</p>
-                <p>{{ problem.rating }} 1000</p>
-              </div>
+  <main>
+    <section class="section">
+      <h2 class="section-title">
+        <span>📚</span>
+        知识图谱
+      </h2>
+      <div class="tags">
+        <span v-for="(tag, index) in knowledgeTags" :key="index" class="tag" :style="tag.style">
+          {{ tag.text }}
+        </span>
+      </div>
+    </section>
+    <br>
+    <br>
+    <section class="section">
+      <h2 class="section-title">推荐算法</h2>
+      <div class="algorithm-grid">
+        <div class="algorithm-card" v-for="i in 3" :key="i"></div>
+      </div>
+    </section>
+    <br>
+    <br>
+    <section class="section">
+      <h2 class="section-title">题单</h2>
+      <div class="problem-grid" id="problemGrid">
+        <div v-for="(problem, index) in problemSets" :key="index" class="problem-card" @click="openModal(index + 1)">
+          <div class="problem-content">
+            <div class="problem-image"></div>
+            <div class="problem-info">
+              <p>{{ problem.title }} 题单{{ index + 1 }}</p>
+              <p>{{ problem.difficulty }} 中等</p>
+              <p>{{ problem.count }} 100</p>
+              <p>{{ problem.rating }} 1000</p>
             </div>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
+  </main>
 
-    <div class="modal-overlay" :style="{ display: modalVisible ? 'block' : 'none' }" @click="closeModal"></div>
-    <div class="modal" :style="{ display: modalVisible ? 'block' : 'none' }">
-      <div class="modal-header">
-        <h2 class="modal-title">《题单{{ currentProblemSetId }}》题目练习</h2>
-        <button class="modal-close" @click="closeModal">&times;</button>
+  <div class="modal-overlay" :style="{ display: modalVisible ? 'block' : 'none' }" @click="closeModal"></div>
+  <div class="modal" :style="{ display: modalVisible ? 'block' : 'none' }">
+    <div class="modal-header">
+      <h2 class="modal-title">《题单{{ currentProblemSetId }}》题目练习</h2>
+      <button class="modal-close" @click="closeModal">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div class="modal-stats">
+        通过题目：0题（共100题）
       </div>
-      <div class="modal-content">
-        <div class="modal-stats">
-          通过题目：0题（共100题）
-        </div>
-        <div class="modal-filter">
-          <input type="checkbox" id="hideCompleted" v-model="hideCompleted">
-          <label for="hideCompleted">隐藏未通过</label>
-        </div>
-        <table class="modal-table">
-          <thead>
-            <tr>
-              <th>题号</th>
-              <th>标题</th>
-              <th>通过率</th>
-              <th>我的状态</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="problem in filteredProblems" :key="problem.id">
-              <td>{{ problem.id.toString().padStart(3, '0') }}</td>
-              <td>{{ problem.title }}</td>
-              <td>{{ problem.passRate }}%</td>
-              <td>{{ problem.status }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="modal-filter">
+        <input type="checkbox" id="hideCompleted" v-model="hideCompleted">
+        <label for="hideCompleted">隐藏未通过</label>
       </div>
+      <table class="modal-table">
+        <thead>
+          <tr>
+            <th>题号</th>
+            <th>标题</th>
+            <th>通过率</th>
+            <th>我的状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="problem in filteredProblems" :key="problem.id">
+            <td>{{ problem.id.toString().padStart(3, '0') }}</td>
+            <td>{{ problem.title }}</td>
+            <td>{{ problem.passRate }}%</td>
+            <td>{{ problem.status }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
@@ -218,7 +216,7 @@ body {
   border-radius: 50%;
 }
 
-.container {
+main {
   padding: 40px;
   background-color: #f5f5f5;
   min-height: 100vh;

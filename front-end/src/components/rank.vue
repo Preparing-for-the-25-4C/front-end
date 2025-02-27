@@ -9,8 +9,7 @@
           <th>排名</th>
           <th>用户名</th>
           <th>AC数</th>
-          <th>个人简介</th>
-          <th></th>
+          <th>学校</th>
         </tr>
       </thead>
       <tbody>
@@ -47,14 +46,14 @@ const users = ref([
     ranking: 1,
     username: '名称1',
     acCount: '数量1',
-    introduction: '简介1'
+    introduction: '学校1'
   },
   {
     id: 2,
     ranking: 2,
     username: '名称2',
     acCount: '数量2',
-    introduction: '简介2'
+    introduction: '学校2'
   },
   // Add more sample data as needed
 ])
