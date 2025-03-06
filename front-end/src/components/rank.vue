@@ -2,62 +2,109 @@
   <div class="body2">
     <br>
     <br>
-  <div class="ranking-table-container">
-    <table class="ranking-table">
-      <thead>
-        <tr>
-          <th>排名</th>
-          <th>用户名</th>
-          <th>AC数</th>
-          <th>学校</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in users" :key="user.id" :class="{ 'odd-row': user.id % 2 !== 0 }">
-          <td class="ranking">{{ user.ranking }}</td>
-          <td class="username">
-            <div class="user-info">
-              <div class="avatar"></div>
-              <span>{{ user.username }}</span>
-            </div>
-          </td>
-          <td class="ac-count">{{ user.acCount }}</td>
-          <td class="introduction">{{ user.introduction }}</td>
-          <td class="actions">
-            <button class="expand-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="ranking-table-container">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>用户名</th>
+            <th>AC数</th>
+            <th>学校</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(user, index) in users" :key="user.userId" :class="{ 'odd-row': (currentPage - 1) * pageSize + index % 2 === 0 }">
+            <td class="ranking">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+            <td class="username">
+              <div class="user-info">
+                <div class="avatar" :style="{ backgroundImage: `url(${user.userProfile})` }"></div>
+                <span>{{ user.userName }}</span>
+              </div>
+            </td>
+            <td class="ac-count">{{ user.acCount }}</td>
+            <td class="introduction">{{ user.userSchool }}</td>
+            <td class="actions">
+              <button class="expand-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button @click="prevPage" :disabled="currentPage === 1" class="page-button">上一页</button>
+        <span class="page-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+        <button @click="nextPage" :disabled="currentPage >= totalPages" class="page-button">下一页</button>
+      </div>
+    </div>
   </div>
 </template>
-
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 
-const users = ref([
-  {
-    id: 1,
-    ranking: 1,
-    username: '名称1',
-    acCount: '数量1',
-    introduction: '学校1'
-  },
-  {
-    id: 2,
-    ranking: 2,
-    username: '名称2',
-    acCount: '数量2',
-    introduction: '学校2'
-  },
-  // Add more sample data as needed
-])
+const pageSize = 20;
+const currentPage = ref(1);
+const total = ref(0);
+const users = ref([]);
+const token = ref(localStorage.getItem('token') || '');
+
+const fetchRankData = async () => {
+  try {
+    const response = await axios.get(`/api/getRanks/${pageSize}/${currentPage.value}`, {
+      headers: { 'Authorization': `Bearer ${token.value}` }
+    });
+    if (response.data.errCode === 1000) {
+      users.value = response.data.data.rankData;
+      total.value = response.data.data.total;
+    } else {
+      handleError(response.data.errCode);
+    }
+  } catch (error) {
+    console.error('Error fetching rank data:', error);
+  }
+};
+
+const handleError = (errCode) => {
+  const errorMessages = {
+    1001: '服务器内部错误',
+    1002: '验证码错误',
+    1003: '用户名或密码错误',
+    1004: '幂等性错误',
+    1005: '用户名已存在',
+    1006: 'token过期',
+    1007: '邮箱验证码错误',
+    1008: '数据不符合规范',
+    1009: '邮箱已被使用',
+    1010: '手机号已被使用',
+    1011: '不存在的静态资源'
+  };
+  alert(errorMessages[errCode] || '未知错误');
+};
+
+const totalPages = computed(() => Math.ceil(total.value / pageSize));
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchRankData();
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    fetchRankData();
+  }
+};
+
+onMounted(() => {
+  fetchRankData();
+});
 </script>
+
 
 <style scoped>
 .body2{
@@ -73,7 +120,37 @@ const users = ref([
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 20px;
+}
+.page-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
 
+.page-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.page-info {
+  color: #666;
+}
+
+.avatar {
+  background-size: cover;
+  background-position: center;
+}
 .ranking-table {
   width: 100%;
   border-collapse: collapse;

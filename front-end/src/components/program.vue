@@ -2,16 +2,21 @@
   <br>
   <br>
   <div class="container">
-    <header class="header">
+    <div class="header">
       <div class="breadcrumb">
         <span class="folder-icon">📁</span>
         <span>题库</span>
       </div>
       <div class="actions">
+        <select v-model="selectedLanguage" class="language-select">
+          <option v-for="lang in languages" :value="lang.id" :key="lang.id">
+            {{ lang.name }}
+          </option>
+        </select>
         <button class="btn btn-primary" @click="runCode">运行</button>
-        <button class="btn" @click="submitCode">提交</button>
+        <button class="btn" @click="handleSubmitCode">提交</button>
       </div>
-    </header>
+    </div>
 
     <main class="main-content">
       <!-- 最左侧边栏 -->
@@ -22,51 +27,32 @@
             <li v-for="submission in submissionData" :key="submission.id" 
                 class="submission-item" 
                 @click="showSubmissionDetails(submission.id)">
-              <span :class="['status-indicator', `status-${submission.status === '已通过' ? 'accepted' : 'wrong'}`]"></span>
-              #{{ submission.id }} {{ submission.status }}
+                <span :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"></span>
+                <div class="submission-meta">
+                <span class="problem-name">{{ submission.probName }}</span>
+                <span class="status">{{ submission.status }}</span>
+                <span class="time">{{ submission.recordTime }}</span>
+              </div>
             </li>
           </ul>
-        </div>
-        <div class="sidebar-section">
-          <h3 class="sidebar-title">题目列表</h3>
-          <ul class="problem-list">
-            <li v-for="problem in problems" :key="problem.id" class="problem-item">
-              {{ problem.id }}. {{ problem.title }}
-            </li>
-          </ul>
+          <div class="pagination">
+            <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+            <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+            <button @click="nextPage" :disabled="currentPage >= totalPages">下一页</button>
+          </div>
         </div>
       </aside>
 
       <!-- 中间题目描述 -->
       <div class="problem-description-panel">
         <div class="problem-header">
-          <span class="problem-id">001.</span>
-          <span>hello world</span>
-          <span class="difficulty">简单</span>
+          <span class="problem-id">{{ problemInfo.id }}.</span>
+          <span>{{ problemInfo.title }}</span>
+          <span class="difficulty">{{ problemInfo.difficulty }}</span>
         </div>
 
         <div class="problem-text">
-          这是你的第一个题目，你只需要输出hello world就可以了
-        </div>
-
-        <div class="io-section">
-          <h3 class="section-title">输入格式：</h3>
-          <div class="io-content">无</div>
-
-          <h3 class="section-title">输出格式：</h3>
-          <div class="io-content">hello world</div>
-        </div>
-
-        <div class="limits-grid">
-          <div class="limit-item">
-            时间限制：<span class="limit-value">1000ms</span>
-          </div>
-          <div class="limit-item">
-            内存限制：<span class="limit-value">64MB</span>
-          </div>
-          <div class="limit-item">
-            输出限制：<span class="limit-value">512KB</span>
-          </div>
+          {{ problemDetails.description }}
         </div>
 
         <!-- 提交详情覆盖层 -->
@@ -84,7 +70,6 @@
           <pre>{{ activeSubmission.code }}</pre>
         </div>
       </div>
-
       <!-- 右侧代码编辑区域 -->
       <div class="code-panel">
         <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
@@ -104,13 +89,233 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive,onMounted,onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
+const currentPage = ref(1);
+const totalPages = ref(1);
+const pageSize = 3;
+interface SubmissionRecord {
+  id: number;
+  probName: string;
+  status: string;
+  language: string;
+  time: BigInteger;
+  code: string;
+  recordTime: string;
+}
+const submissionData = reactive<SubmissionRecord[]>([]);
+  const fetchSubmissionRecords = async (page: number) => {
+    const response = await axios.get(`/api/getRecord/${pageSize}/${page}`, {
+      headers: { 'Token': Token.value },
+      params: {
+        probName: problemInfo.title,
+        languageId: selectedLanguage.value,
+        status: activeSubmission.status
+      }
+    });
+    if (response.data.errCode === 1000) {
+      alert('获取提交记录成功');
+      submissionData.splice(0, submissionData.length, 
+        ...response.data.data.records.map((record: any) => ({
+          id: record.id,
+          probName: record.probName,
+          status: formatStatus(record.status),
+          language: record.language,
+          time: `${record.wallTime}ms`,
+          code: atob(record.codeOnBase64),
+          recordTime: record.recordTime
+        }))
+      );
+      totalPages.value = Math.ceil(response.data.data.total / pageSize);
+    }else{
+      handleSubmitError(response.data.errCode)
+      alert('获取提交记录失败');
+    }
+};
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchSubmissionRecords(currentPage.value);
+  }
+};
 
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    fetchSubmissionRecords(currentPage.value);
+  }
+};
+const languages = ref([
+  { id: 50, name: 'C (GCC 9.2.0)' },
+  { id: 54, name: 'C++ (GCC 9.2.0)' },
+  { id: 62, name: 'Java (OpenJDK 13.0.1)' },
+  { id: 63, name: 'JavaScript (Node.js 12.14.0)' },
+  { id: 71, name: 'Python (3.8.1)' }
+])
+const selectedLanguage = ref(71)
+const handleSubmitCode = async () => {
+  if (!code.value.trim()) {
+    alert('代码不能为空')
+    return
+  }
+    const response = await axios.post('/api/submit', {
+      sourceCode: code.value,
+      languageId: selectedLanguage.value,
+      probId: route.query.id
+    }, {
+      headers: { 'Token': Token.value }
+    })
+    if (response.data.errCode === 1000) {
+      const token=response.data.data;
+      startPolling(token)
+      currentPage.value = 1;  // 重置到第一页
+      fetchSubmissionRecords(1);
+      // 刷新提交记录（需自行实现）
+    } else {
+      handleSubmitError(response.data.errCode)
+    }
+  } 
+  const formatStatus = (status: string) => {
+  const statusMap: { [key: string]: string } = {
+    'Accepted': '已通过',
+    'WrongAnswer': '答案错误',
+    'Judging': '评测中'
+  };
+  return statusMap[status] || status;
+};
+const getStatusClass = (status: string) => {
+  switch(status) {
+    case '已通过': return 'accepted';
+    case '答案错误': return 'wrong';
+    default: return 'judging';
+  }
+};
+onMounted(async () => {
+  if (route.query.id) {
+    await fetchProblemDetails();
+    fetchSubmissionRecords(1);
+  }
+});
+  const pollingInterval = ref<ReturnType<typeof setInterval>>();
+const startPolling = (judgeToken: string) => {
+  stopPolling(); // 先停止已有轮询
+  pollingInterval.value = setInterval(async () => {
+    try {
+      const response = await axios.get(`/api/getSubmitRes/${judgeToken}`, {
+        headers: { 'Token': Token.value }
+      });
+      
+      if (response.data.errCode === 1000) {
+        const result = response.data.data;
+        if (result.judgeStatus !== 'Judging') { // 假设状态为Judging表示还在评测
+          stopPolling();
+          showResultPopup(result);
+        }
+      }
+    } catch (error) {
+      stopPolling();
+      alert('获取评测结果失败');
+    }
+  }, 1000); // 每1秒轮询一次
+}
+const stopPolling = () => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value);
+    pollingInterval.value = undefined;
+  }
+}
+const showResultPopup = (result: any) => {
+  const msg = `评测状态: ${result.judgeStatus}\n`
+    + `内存使用: ${result.memory} KB\n`
+    + `执行耗时: ${result.time} ms`;
+  alert(msg);
+}
+onUnmounted(() => {
+  stopPolling();
+});
+const handleSubmitError = (code: number) => {
+  const errorMap: { [key: number]: string } = {
+    1001: '服务器内部错误',
+    1002: '验证码错误',
+    1003: '权限验证失败',
+    1006: 'Token已过期',
+    1008: '代码不符合规范',
+    1012: '不存在的题目ID',
+    1013: '不支持的语言类型'
+  }
+  alert(errorMap[code] || `未知错误 (代码: ${code})`)
+}
+const Token=ref()
+Token.value=localStorage.getItem('token')
+const problemDetails=reactive({description:'加载中'});
+const route = useRoute();
+const problemInfo = reactive({
+  id: route.query.id || '001',
+  title: route.query.title || 'hello world',
+  difficulty: route.query.difficulty || '简单'
+});
+onMounted(() => {
+  Object.assign(problemInfo, {
+    id: route.query.id || '001',
+    title: route.query.title || 'hello world',
+    difficulty: route.query.difficulty || '简单'
+  });
+});
+const fetchProblemDetails = async () => {
+    const response = await axios.get(`/api/getProbContent/${route.query.id}`, {
+      headers: { 'Token': Token.value }
+    });
+
+    if (response.data.errCode === 1000) {
+      problemDetails.description = response.data.data;
+    } else {
+      if (response.data.errCode === 1001) {
+        alert('服务器内部错误');
+      }
+      if (response.data.errCode === 1002) {
+        alert('验证码错误');
+      }
+      if (response.data.errCode === 1003) {
+        alert('用户名或密码错误'); 
+      }
+      if(response.data.errCode === 1004){
+        alert('幂等性错误'); 
+      }
+      if(response.data.errCode === 1005){
+        alert('用户名已存在');
+      }
+      if(response.data.errCode === 1006){
+        alert('token过期'); 
+      }
+      if(response.data.errCode === 1007){
+        alert('邮箱验证码错误'); 
+      }
+      if(response.data.errCode === 1008){
+        alert('数据不符合规范'); 
+      }
+      if(response.data.errCode === 1009){
+        alert('邮箱已被使用'); 
+      }
+      if(response.data.errCode === 1010){
+        alert('手机号已被使用'); 
+      }
+      if(response.data.errCode === 1011){
+        alert('不存在的静态资源'); 
+      }
+      problemDetails.description = '题目加载失败';
+    }
+  }
+  onMounted(async () => {
+  if (route.query.id) {
+    await fetchProblemDetails();
+  }
+});
 const code = ref('');
 const output = ref('');
 const isSubmissionDetailsActive = ref(false);
 const activeSubmission = reactive({
-  id: null,
+  id: '',
   status: '',
   language: '',
   time: '',
@@ -118,31 +323,12 @@ const activeSubmission = reactive({
   code: ''
 });
 
-const submissionData = reactive([
-  { id: 1, status: '已通过', language: 'C++', time: '2ms', memory: '1.2MB', code: '#include <iostream>\n\nint main() {\n    std::cout << "hello world" << std::endl;\n    return 0;\n}' },
-  { id: 2, status: '错误答案', language: 'Python', time: '5ms', memory: '2.1MB', code: 'print("Hello World")' },
-  { id: 3, status: '已通过', language: 'Java', time: '8ms', memory: '3.5MB', code: 'public class Solution {\n    public static void main(String[] args) {\n        System.out.println("hello world");\n    }\n}' }
-]);
-
-const problems = [
-  { id: '001', title: 'Hello World' },
-  { id: '002', title: '两数之和' },
-  { id: '003', title: '无重复字符的最长子串' },
-  { id: '004', title: '寻找两个正序数组的中位数' }
-];
-
 function runCode() {
   output.value = '运行中...';
   setTimeout(() => {
     output.value = code.value || 'No output';
   }, 500);
 }
-
-function submitCode() {
-  // Implement submission logic here
-  console.log('Code submitted:', code.value);
-}
-
 function clearOutput() {
   output.value = '';
 }
@@ -166,7 +352,28 @@ function closeSubmissionDetails() {
 }
 </script>
 
-<style>
+<style scoped>
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.language-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 8px;  /* 增加与运行按钮的间距 */
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  height: 32px;       /* 与按钮高度保持一致 */
+}
+.btn {
+  height: 32px;       /* 统一按钮高度 */
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
 * {
   margin: 0;
   padding: 0;
@@ -179,7 +386,15 @@ body {
   padding: 20px;
   color: #333;
 }
-
+.language-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
 .container {
   max-width: 1600px;
   margin: 0 auto;
@@ -190,7 +405,55 @@ body {
   display: flex;
   flex-direction: column;
 }
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-top: 1px solid #eee;
+}
+.pagination button {
+  padding: 6px 12px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  background: #e6f7ff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pagination button:disabled {
+  border-color: #ddd;
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+.submission-meta {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+}
+.status {
+  font-size: 12px;
+  color: #666;
+}
 
+.time {
+  font-size: 12px;
+  color: #999;
+}
+
+.status-judging {
+  background-color: #faad14;
+}
+.problem-name {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.pagination span {
+  font-size: 14px;
+  color: #666;
+}
 /* 头部导航 */
 .header {
   display: flex;

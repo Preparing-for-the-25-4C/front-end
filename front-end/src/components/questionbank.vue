@@ -19,16 +19,55 @@
       <!-- 题目列表部分 -->
       <section class="problem-section">
         <div class="search-bar">
-          <select>
-            <option>状态</option>
+          <select v-model="queryParams.status">
+            <option :value="null">状态</option>
+            <option value="通过">通过</option>
+            <option value="未通过">未通过</option>
           </select>
-          <select>
-            <option>标签</option>
+          <select v-model="queryParams.probSkill">
+            <option :value="null">标签</option>
+            <option value="数组">数组</option>
+            <option value="字符串">字符串</option>
+            <option value="链表">链表</option>
+            <option value="栈">栈</option>
+            <option value="队列">队列</option>
+            <option value="树">树</option>
+            <option value="图">图</option>
+            <option value="排序">排序</option>
+            <option value="查找">查找</option>
+            <option value="动态规划">动态规划</option>
+            <option value="贪心">贪心</option>
+            <option value="回溯">回溯</option>
+            <option value="分治">分治</option>
+            <option value="二分查找">二分查找</option>
+            <option value="位运算">位运算</option>
+            <option value="数学">数学</option>
+            <option value="几何">几何</option>
+            <option value="概率">概率</option>
+            <option value="统计">统计</option>
+            <option value="图论">图论</option>
+            <option value="搜索">搜索</option>
+            <option value="并查集">并查集</option>
+            <option value="拓扑排序">拓扑排序</option>
+            <option value="堆">堆</option>
+            <option value="哈希表">哈希表</option>
+            <option value="前缀和">前缀和</option>
+            <option value="双指针">双指针</option>
+            <option value="单调栈">单调栈</option>
+            <option value="单调队列">单调队列</option>
           </select>
-          <select>
-            <option>难度</option>
+          <select v-model="queryParams.difficulty">
+            <option :value="null">难度</option>
+            <option value="简单">简单</option>
+            <option value="中等">中等</option>
+            <option value="困难">困难</option>
           </select>
-          <input type="text" placeholder="搜索题目" />
+          <select v-model="queryParams.desc">
+            <option :value="false">排序</option>
+            <option value="false">升序</option>
+            <option value="true">降序</option>
+          </select>
+          <input type="text" placeholder="搜索题目" v-model="queryParams.orderBy"/>
           <button @click="handleSearch">搜索</button>
         </div>
 
@@ -43,22 +82,27 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1</td>
-              <td>题目1</td>
-              <td>中等</td>
-              <td>0/0</td>
-              <td><RouterLink class="submit-btn" to="/program">挑战</RouterLink></td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>题目2</td>
-              <td>中等</td>
-              <td>0/0</td>
-              <td><RouterLink class="submit-btn" to="/program">挑战</RouterLink></td>
+            <tr v-for="problem in problems" :key="problem.id">
+              <td>{{ problem.probId }}</td>
+              <td>{{ problem.probTitle }}</td>
+              <td>{{ problem.difficulty }}</td>
+              <td>{{ problem.probSuccess }}</td>
+              <td><RouterLink class="submit-btn" :to="{
+                path:'/program',
+                query: { id: problem.probId,
+                title: problem.probTitle,
+                difficulty: problem.difficulty
+                 }
+              }">挑战</RouterLink></td>
             </tr>
           </tbody>
         </table>
+
+        <div class="pagination">
+          <button @click="prevPage" :disabled="pageNum === 1">上一页</button>
+          <span>第 {{ pageNum }} 页，共 {{ totalPages }} 页</span>
+          <button @click="nextPage" :disabled="pageNum === totalPages">下一页</button>
+        </div>
       </section>
     </main>
     <!-- 右侧边栏 -->
@@ -79,14 +123,12 @@
       </div>
 
       <!-- 进度图表部分 -->
-      <div class="progress-section">
-        <h3>刷题进度</h3>
-        <div class="progress-chart">
-          <div class="progress-ring"></div>
-          <div class="progress-center">70%</div>
-        </div>
-        <p>学习进度正常率</p>
-      </div>
+      <div class="progress-chart">
+  <div class="progress-ring" :style="{
+    background: `conic-gradient(#1890ff 0% ${processRate}%, #f0f0f0 ${processRate}% 100%)`
+  }"></div>
+  <div class="progress-center">{{ processRate*100 }}%</div>
+</div>
     </aside>
   </div>
 </template>
@@ -94,16 +136,159 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import axios from 'axios';
 import { useRouter } from 'vue-router';
 const router = useRouter();
+const Token = ref();
+const processRate = ref(0);
+
+// 修改后的fetchProcessRate
+const fetchProcessRate = async () => {
+    const response = await axios.get('/api/getProcessRate', {
+      headers: { 'Token': Token.value }
+    });
+    if (response.data.errCode === 1000) {
+      processRate.value = response.data.data;
+    } else {
+      if (response.data.errCode === 1001) {
+        alert('服务器内部错误');
+      }
+      if (response.data.errCode === 1002) {
+        alert('验证码错误');
+      }
+      if (response.data.errCode === 1003) {
+        alert('用户名或密码错误'); 
+      }
+      if(response.data.errCode === 1004){
+        alert('幂等性错误'); 
+      }
+      if(response.data.errCode === 1005){
+        alert('用户名已存在');
+      }
+      if(response.data.errCode === 1006){
+        alert('token过期'); 
+      }
+      if(response.data.errCode === 1007){
+        alert('邮箱验证码错误'); 
+      }
+      if(response.data.errCode === 1008){
+        alert('数据不符合规范'); 
+      }
+      if(response.data.errCode === 1009){
+        alert('邮箱已被使用'); 
+      }
+      if(response.data.errCode === 1010){
+        alert('手机号已被使用'); 
+      }
+      if(response.data.errCode === 1011){
+        alert('不存在的静态资源'); 
+      }
+    }
+  } 
+onMounted(() => {
+  generateCalendar();
+  fetchProblems();
+  fetchProcessRate(); // 新增调用
+});
 // 日历相关数据
 const currentYear = ref(2025);
 const currentMonth = ref(1);
-// 挑战题目
+
+// 题目列表数据
+const problems = ref([]);
+
+// 筛选相关数据
+const queryParams = ref({
+  status: null,
+  probSkill: null,
+  difficulty: null,
+  desc: false,
+  orderBy: null,
+  vague:null
+});
+Token.value = localStorage.getItem('token');
+// 分页相关数据
+const pageNum = ref(1);
+const pageSize = ref(15);
+const totalPages = ref(1);
+
 // 处理搜索按钮点击事件
 const handleSearch = () => {
-  console.log('搜索按钮被点击');
+  pageNum.value = 1; // 搜索时重置到第一页
+  fetchProblems();
 };
+
+// 切换到上一页
+const prevPage = () => {
+  if (pageNum.value > 1) {
+    pageNum.value--;
+    fetchProblems();
+  }
+};
+
+// 切换到下一页
+const nextPage = () => {
+  if (pageNum.value < totalPages.value) {
+    pageNum.value++;
+    fetchProblems();
+  }
+}; 
+// 获取题目数据
+const fetchProblems = async () => {
+    const response = await axios.get(`/api/getProblems/${pageSize.value}/${pageNum.value}`, {
+      params: {
+        status: queryParams.value.status,
+        probSkill: queryParams.value.probSkill,
+        difficulty: queryParams.value.difficulty,
+        desc: queryParams.value.desc,
+        orderBy: queryParams.value.orderBy,
+        vague: queryParams.value.vague,
+        Token: Token.value
+      }
+    });
+if(response.data.errCode ===1000){
+    problems.value = response.data.data.probList;
+    totalPages.value = Math.ceil(response.data.data.total / pageSize.value);
+  }
+  else{
+    if (response.data.errCode === 1001) {
+        alert('服务器内部错误');
+      }
+      if (response.data.errCode === 1002) {
+        alert('验证码错误');
+      }
+      if (response.data.errCode === 1003) {
+        alert('用户名或密码错误'); 
+      }
+      if(response.data.errCode === 1004){
+        alert('幂等性错误'); 
+      }
+      if(response.data.errCode === 1005){
+        alert('用户名已存在');
+      }
+      if(response.data.errCode === 1006){
+        alert('token过期'); 
+      }
+      if(response.data.errCode === 1007){
+        alert('邮箱验证码错误'); 
+      }
+      if(response.data.errCode === 1008){
+        alert('数据不符合规范'); 
+      }
+      if(response.data.errCode === 1009){
+        alert('邮箱已被使用'); 
+      }
+      if(response.data.errCode === 1010){
+        alert('手机号已被使用'); 
+      }
+      if(response.data.errCode === 1011){
+        alert('不存在的静态资源'); 
+      }
+  }
+}
+
+
+
 // 切换到上一个月
 const prevMonth = () => {
   if (currentMonth.value === 1) {
@@ -164,9 +349,10 @@ const generateCalendar = () => {
   }
 };
 
-// 页面加载时生成日历
+// 页面加载时生成日历和获取题目数据
 onMounted(() => {
   generateCalendar();
+  fetchProblems();
 });
 </script>
 
@@ -332,6 +518,8 @@ body {
   background: white;
   padding: 1rem;
   border-radius: 8px;
+  height:100vh;
+  overflow-y:auto;
 }
 
 .sidebar:hover {
@@ -386,12 +574,7 @@ body {
   position: relative;
 }
 
-.progress-ring {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: conic-gradient(#1890ff 0% 70%, #f0f0f0 70% 100%);
-}
+
 
 .progress-center {
   position: absolute;
@@ -405,5 +588,31 @@ body {
 .progress-section:hover {
   border: 2px solid #ddd;
   border-radius: 8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 1rem;
 }
 </style>

@@ -41,7 +41,8 @@ const router=createRouter({
         },
         {
             path:'/program',
-            component:program
+            component:program,
+            props:(route)=>({query:route.query})
         },
         {
             path:'/settings',
