@@ -1,5 +1,6 @@
 <template>
   <br>
+  <homepage :probList="probList" />
   <div class="body2">
     <!-- 左侧主要内容 -->
     <main>
@@ -107,37 +108,60 @@
     </main>
     <!-- 右侧边栏 -->
     <aside class="sidebar">
-      <!-- 日历部分 -->
+      <!-- 日历部分 - 改进版 -->
       <div class="calendar">
         <div class="calendar-header">
           <h3>Calendar</h3>
           <div>
-            <span @click="prevMonth">◀</span>
+            <span @click="prevMonth" class="month-nav">◀</span>
             <span>{{ currentYear }}年{{ currentMonth }}月</span>
-            <span @click="nextMonth">▶</span>
+            <span @click="nextMonth" class="month-nav">▶</span>
           </div>
         </div>
-        <div class="calendar-grid" id="calendarGrid" ref="calendarGrid">
-          <!-- 日历内容由 JavaScript 生成 -->
+        
+        <!-- 改进的日历网格 -->
+        <div class="calendar-grid">
+          <!-- 星期标题 -->
+          <div v-for="day in weekDays" :key="day" class="calendar-day-header">
+            {{ day }}
+          </div>
+          
+          <!-- 空白格子填充月初前的日期 -->
+          <div v-for="i in firstDayOfMonth" :key="'empty-' + i" class="calendar-day empty"></div>
+          
+          <!-- 当月日期 -->
+          <div 
+            v-for="day in daysInMonth" 
+            :key="day"
+            :class="[
+              'calendar-day', 
+              isToday(day) ? 'today' : '',
+              selectedDate === day ? 'selected' : ''
+            ]"
+            @click="selectDate(day)"
+          >
+            {{ day }}
+          </div>
         </div>
       </div>
 
       <!-- 进度图表部分 -->
       <div class="progress-chart">
-  <div class="progress-ring" :style="{
-    background: `conic-gradient(#1890ff 0% ${processRate}%, #f0f0f0 ${processRate}% 100%)`
-  }"></div>
-  <div class="progress-center">{{ processRate*100 }}%</div>
-</div>
+        <div class="progress-ring" :style="{
+          background: `conic-gradient(#1890ff 0% ${processRate}%, #f0f0f0 ${processRate}% 100%)`
+        }"></div>
+        <div class="progress-center">{{ processRate }}%</div>
+      </div>
     </aside>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+
 const router = useRouter();
 const Token = ref();
 const processRate = ref(0);
@@ -151,7 +175,8 @@ const fetchProcessRate = async () => {
       processRate.value = response.data.data;
     } else {
       if (response.data.errCode === 1001) {
-        alert('服务器内部错误');
+        alert('请先登录！');
+        router.push('/login'); // 跳转到登录页面
       }
       if (response.data.errCode === 1002) {
         alert('验证码错误');
@@ -185,14 +210,6 @@ const fetchProcessRate = async () => {
       }
     }
   } 
-onMounted(() => {
-  generateCalendar();
-  fetchProblems();
-  fetchProcessRate(); // 新增调用
-});
-// 日历相关数据
-const currentYear = ref(2025);
-const currentMonth = ref(1);
 
 // 题目列表数据
 const problems = ref([]);
@@ -204,9 +221,11 @@ const queryParams = ref({
   difficulty: null,
   desc: false,
   orderBy: null,
-  vague:null
+  vague: null
 });
+
 Token.value = localStorage.getItem('token');
+
 // 分页相关数据
 const pageNum = ref(1);
 const pageSize = ref(15);
@@ -233,61 +252,98 @@ const nextPage = () => {
     fetchProblems();
   }
 }; 
+
 // 获取题目数据
 const fetchProblems = async () => {
-    const response = await axios.get(`/api/getProblems/${pageSize.value}/${pageNum.value}`, {
-      params: {
+  const response = await axios.get(
+      `/api/getProblems/${pageSize.value}/${pageNum.value}`,
+      {
+        // 请求体中的参数
         status: queryParams.value.status,
         probSkill: queryParams.value.probSkill,
         difficulty: queryParams.value.difficulty,
         desc: queryParams.value.desc,
         orderBy: queryParams.value.orderBy,
-        vague: queryParams.value.vague,
-        Token: Token.value
+        vague: queryParams.value.vague
+      },
+      {
+        headers: {
+          'Token': Token.value // 将 Token 放到请求头中
+        }
       }
-    });
-if(response.data.errCode ===1000){
-    problems.value = response.data.data.probList;
-    totalPages.value = Math.ceil(response.data.data.total / pageSize.value);
-  }
-  else{
-    if (response.data.errCode === 1001) {
-        alert('服务器内部错误');
-      }
-      if (response.data.errCode === 1002) {
-        alert('验证码错误');
-      }
-      if (response.data.errCode === 1003) {
-        alert('用户名或密码错误'); 
-      }
-      if(response.data.errCode === 1004){
-        alert('幂等性错误'); 
-      }
-      if(response.data.errCode === 1005){
-        alert('用户名已存在');
-      }
-      if(response.data.errCode === 1006){
-        alert('token过期'); 
-      }
-      if(response.data.errCode === 1007){
-        alert('邮箱验证码错误'); 
-      }
-      if(response.data.errCode === 1008){
-        alert('数据不符合规范'); 
-      }
-      if(response.data.errCode === 1009){
-        alert('邮箱已被使用'); 
-      }
-      if(response.data.errCode === 1010){
-        alert('手机号已被使用'); 
-      }
-      if(response.data.errCode === 1011){
-        alert('不存在的静态资源'); 
-      }
-  }
+    );
+    if(response.data.errCode === 1000){
+        problems.value = response.data.data.probList;
+        totalPages.value = Math.ceil(response.data.data.total / pageSize.value);
+    }
+    else{
+        if (response.data.errCode === 1001) {
+            alert('服务器内部错误');
+        }
+        if (response.data.errCode === 1002) {
+            alert('验证码错误');
+        }
+        if (response.data.errCode === 1003) {
+            alert('用户名或密码错误'); 
+        }
+        if(response.data.errCode === 1004){
+            alert('幂等性错误'); 
+        }
+        if(response.data.errCode === 1005){
+            alert('用户名已存在');
+        }
+        if(response.data.errCode === 1006){
+            alert('token过期'); 
+        }
+        if(response.data.errCode === 1007){
+            alert('邮箱验证码错误'); 
+        }
+        if(response.data.errCode === 1008){
+            alert('数据不符合规范'); 
+        }
+        if(response.data.errCode === 1009){
+            alert('邮箱已被使用'); 
+        }
+        if(response.data.errCode === 1010){
+            alert('手机号已被使用'); 
+        }
+        if(response.data.errCode === 1011){
+            alert('不存在的静态资源'); 
+        }
+    }
 }
 
+// ===== 改进的日历部分 =====
+// 星期几的标签
+const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
 
+// 当前日期相关数据
+const today = new Date();
+const currentYear = ref(today.getFullYear());
+const currentMonth = ref(today.getMonth() + 1); // JavaScript 月份从0开始，所以+1
+const selectedDate = ref(null);
+
+// 计算当月有多少天
+const daysInMonth = computed(() => {
+  return new Date(currentYear.value, currentMonth.value, 0).getDate();
+});
+
+// 计算当月第一天是星期几（0-6）
+const firstDayOfMonth = computed(() => {
+  return new Date(currentYear.value, currentMonth.value - 1, 1).getDay();
+});
+
+// 检查是否为今天
+const isToday = (day) => {
+  return day === today.getDate() && 
+         currentMonth.value === today.getMonth() + 1 && 
+         currentYear.value === today.getFullYear();
+};
+
+// 选择日期
+const selectDate = (day) => {
+  selectedDate.value = day;
+};
 
 // 切换到上一个月
 const prevMonth = () => {
@@ -297,7 +353,7 @@ const prevMonth = () => {
   } else {
     currentMonth.value--;
   }
-  generateCalendar();
+  selectedDate.value = null;
 };
 
 // 切换到下一个月
@@ -308,51 +364,19 @@ const nextMonth = () => {
   } else {
     currentMonth.value++;
   }
-  generateCalendar();
+  selectedDate.value = null;
 };
 
-// 生成日历
-const generateCalendar = () => {
-  const calendarGrid = document.getElementById('calendarGrid');
-  calendarGrid.innerHTML = ''; // 清空日历内容
-
-  const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-
-  // 添加星期标题
-  weekDays.forEach(day => {
-    const dayElement = document.createElement('div');
-    dayElement.className = 'calendar-day';
-    dayElement.textContent = day;
-    calendarGrid.appendChild(dayElement);
-  });
-
-  // 获取当前月的第一天是星期几
-  const firstDay = new Date(currentYear.value, currentMonth.value - 1, 1).getDay();
-  const daysInMonth = new Date(currentYear.value, currentMonth.value, 0).getDate();
-
-  // 添加空白天数
-  for (let i = 0; i < firstDay; i++) {
-    const emptyDay = document.createElement('div');
-    emptyDay.className = 'calendar-day';
-    calendarGrid.appendChild(emptyDay);
-  }
-
-  // 添加日期
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dayElement = document.createElement('div');
-    dayElement.className = 'calendar-day';
-    dayElement.textContent = i;
-    if (i === 15) { // 假设今天是15号
-      dayElement.classList.add('today');
-    }
-    calendarGrid.appendChild(dayElement);
-  }
-};
-
-// 页面加载时生成日历和获取题目数据
+// 页面加载时初始化
 onMounted(() => {
-  generateCalendar();
   fetchProblems();
+  fetchProcessRate();
+  
+  // 如果是当月，选中今天的日期
+  if (currentMonth.value === today.getMonth() + 1 && 
+      currentYear.value === today.getFullYear()) {
+    selectedDate.value = today.getDate();
+  }
 });
 </script>
 
@@ -518,8 +542,8 @@ body {
   background: white;
   padding: 1rem;
   border-radius: 8px;
-  height:100vh;
-  overflow-y:auto;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar:hover {
@@ -527,7 +551,7 @@ body {
   border-radius: 8px;
 }
 
-/* 日历样式 */
+/* 改进的日历样式 */
 .calendar {
   margin-bottom: 2rem;
 }
@@ -539,27 +563,58 @@ body {
   margin-bottom: 1rem;
 }
 
+.month-nav {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.month-nav:hover {
+  background-color: #f0f0f0;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
+  gap: 4px;
   text-align: center;
+}
+
+.calendar-day-header {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: bold;
 }
 
 .calendar-day {
   padding: 0.5rem;
   font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.calendar-day.empty {
+  cursor: default;
+}
+
+.calendar-day:hover:not(.empty) {
+  background-color: #f0f0f0;
 }
 
 .calendar-day.today {
   background: #1890ff;
   color: white;
-  border-radius: 50%;
+  font-weight: bold;
 }
 
-.calendar-day:hover {
-  border: 2px solid #ddd;
-  border-radius: 50%;
+.calendar-day.selected:not(.today) {
+  background-color: #e6f7ff;
+  border: 1px solid #1890ff;
 }
 
 /* 进度图表 */
@@ -572,19 +627,25 @@ body {
   height: 150px;
   margin: 1rem auto;
   position: relative;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-
-
-
+.progress-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  position: absolute;
+}
 .progress-center {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   font-size: 1.5rem;
+  color: black;
   font-weight: bold;
+  z-index: 2;
 }
-
 .progress-section:hover {
   border: 2px solid #ddd;
   border-radius: 8px;

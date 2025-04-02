@@ -1,110 +1,129 @@
 <template>
   <div class="body2">
-  <br>
-  <br>
-  <br>
-  <div>
-    <div class="container">
-  <form @submit.prevent="handleSubmit">
-    <div class="form-header">
-        <!-- <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-QrdIurZoYoARA5LWsnti4j1bAfAQni.png" alt="洛谷 Logo"> -->
-        <a href="#" class="logo">重置密码</a>
-      </div>
-      <div class="form-group">
-          <div class="captcha-group">
-            <input type="email" placeholder="邮箱" v-model="email" id="email" required>
-            <button type="button" class="send-code">发送验证码</button>
-            <p v-if="Message3" class="warning">{{Message3}}</p>
-          </div>
-      </div>
-  </form>
-  <div class="form-group">
-          <input v-model="verificationCode" type="text" id="verificationCode" required placeholder="请输入邮箱验证码">
-  </div>
-  <form @submit.prevent="handleResetPassword">
-    <div class="form-group">
-      <input v-model="password" type="password" id="password" required placeholder="请输入新密码" class="kuang1">
-    </div>
-    <div class="form-group">
-      <input v-model="confirmPassword" type="password" id="confirmPassword" required placeholder="请确认新密码" class="kuang1">
-    </div>
+    <br>
+    <br>
+    <br>
     <div>
-      <button type="submit" class="login-btn">重置密码</button>
-      <p v-if="passwordMessage" class="warning">{{ passwordMessage }}</p>
+      <div class="container">
+        <form @submit.prevent="handleSubmit">
+          <div class="form-header">
+            <!-- <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-QrdIurZoYoARA5LWsnti4j1bAfAQni.png" alt="洛谷 Logo"> -->
+            <a href="#" class="logo">重置密码</a>
+          </div>
+          <div class="form-group">
+            <div class="captcha-group">
+              <input type="email" placeholder="邮箱" v-model="email" id="email" required>
+              <button type="button" class="send-code" @click="handleSubmit">发送验证码</button>
+              <p v-if="Message3" class="warning">{{Message3}}</p>
+            </div>
+          </div>
+        </form>
+        <div class="form-group">
+          <input v-model="verificationCode" type="text" id="verificationCode" required placeholder="请输入邮箱验证码">
+        </div>
+        <form @submit.prevent="handleResetPassword">
+          <div class="form-group">
+            <input v-model="password" type="password" id="password" required placeholder="请输入新密码" class="kuang1">
+          </div>
+          <div class="form-group">
+            <input v-model="confirmPassword" type="password" id="confirmPassword" required placeholder="请确认新密码" class="kuang1">
+          </div>
+          <div>
+            <button type="submit" class="login-btn">重置密码</button>
+            <p v-if="passwordMessage" class="warning">{{ passwordMessage }}</p>
+          </div>
+        </form>
+      </div>
     </div>
-  </form>
-  </div>
-  </div>
   </div>
 </template>
+
 <script setup lang="ts" name="Forgetpwd">
 import { ref } from 'vue';
 import axios from 'axios';
 import router from '@/router';
-  const email = ref('');
-  const Message3 = ref('');
-  const password = ref('');
-  const confirmPassword = ref('');
-  const passwordMessage = ref('');
-  const verificationCode=ref('')
-  let emailVerifyKey=ref('')
-  const handleSubmit = async () => {
-    if (!isValidEmail(email.value)) {
-      Message3.value = '请输入有效的邮箱地址';
-      return;
-    }
-    const response = await axios.post(`/api/getEmailCode/${email}`);
-      if (response.data.errCode==1000) {
-        Message3.value = '验证邮件已发送，请查看您的邮箱。';
-        emailVerifyKey=response.data.data.emailVerifyKey
-      } 
-      else {
-        if(response.data.errCode==1009){
-        Message3.value='邮箱已被使用'
-        }
-        if(response.data.errCode==1001){
-          Message3.value='服务器内部错误'
-        }
-        if(response.data.errCode==1004){
-          alert('用户操作太频繁，请稍后再试')
-        }
-      }
-  }
 
-  const handleResetPassword = async () => {
-    if (password.value!== confirmPassword.value) {
-      passwordMessage.value = '两次输入的密码不一致，请重新输入';
-      return;
+const email = ref('');
+const Message3 = ref('');
+const password = ref('');
+const confirmPassword = ref('');
+const passwordMessage = ref('');
+const verificationCode = ref('');
+let emailVerifyKey = ref('');
+
+const handleSubmit = async () => {
+  if (!isValidEmail(email.value)) {
+    Message3.value = '请输入有效的邮箱地址';
+    return;
+  }
+  try {
+    const response = await axios.get(`/api/getEmailCode/${email.value}`);
+    if (response.data.errCode === 1000) {
+      Message3.value = '验证邮件已发送，请查看您的邮箱。';
+      emailVerifyKey.value = response.data.data.emailVerifyKey;
+    } else {
+      handleError(response.data.errCode);
     }
-      const response = await axios.post('/api/modifyPassword', { 
-        userEmail: email.value, 
-        emailVerifyCode: verificationCode.value,
-        newPassword: password.value ,
-        emailVerifyKey:emailVerifyKey.value
-      });
-      if (response.data.errCode==1000) {
-        passwordMessage.value = '密码重置成功';
-        router.push('/login')
-      } else {
-        if(response.data.errCode==1004){
-          alert('用户操作太频繁，请稍后再试')
-        }else{
-        passwordMessage.value = '密码重置失败，请稍后重试';
-           }
-      }
+  } catch (error) {
+    console.error('发送验证码失败:', error);
+    Message3.value = '发送验证码失败，请稍后重试。';
   }
-  const isValidEmail = (email:any) => {
-    // 基本的邮箱格式验证正则表达式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+};
+
+const handleResetPassword = async () => {
+  if (password.value !== confirmPassword.value) {
+    passwordMessage.value = '两次输入的密码不一致，请重新输入';
+    return;
   }
+  try {
+    const response = await axios.put('/api/modifyPassword', {
+      userEmail: email.value,
+      emailVerifyCode: verificationCode.value,
+      newPassword: password.value,
+      emailVerifyKey: emailVerifyKey.value
+    });
+    if (response.data.errCode === 1000) {
+      passwordMessage.value = '密码重置成功';
+      router.push('/login');
+    } else {
+      handleError(response.data.errCode);
+    }
+  } catch (error) {
+    console.error('重置密码失败:', error);
+    passwordMessage.value = '密码重置失败，请稍后重试。';
+  }
+};
+
+const handleError = (errCode: number) => {
+  switch (errCode) {
+    case 1001:
+      Message3.value = '服务器内部错误';
+      break;
+    case 1004:
+      alert('用户操作太频繁，请稍后再试');
+      break;
+    case 1009:
+      Message3.value = '邮箱已被使用';
+      break;
+    default:
+      Message3.value = '未知错误';
+  }
+};
+
+const isValidEmail = (email: string) => {
+  // 基本的邮箱格式验证正则表达式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 </script>
+
 <style scoped>
-.body2{
+.body2 {
   padding: 40px;
   background-color: #f5f5f5;
   min-height: 100vh;
 }
+
 * {
   margin: 0;
   padding: 0;
@@ -153,14 +172,17 @@ body {
   text-decoration: none;
   margin-right: 1rem;
 }
+
 .warning {
   color: red;
   font-size: 12px;
 }
+
 .captcha-group {
   display: flex;
   gap: 0.5rem;
 }
+
 .send-code {
   padding: 0 1rem;
   background: #3498db;

@@ -7,11 +7,11 @@
         <div class="filter-group">
           <div class="filter-item">
             <label>由题目</label>
-            <input type="text" class="filter-input" v-model="filters.problem">
+            <input type="text" class="filter-input" v-model="filters.problem" @keyup.enter="applyFilters">
           </div>
           <div class="filter-item">
             <label>由比赛</label>
-            <input type="text" class="filter-input" v-model="filters.contest">
+            <input type="text" class="filter-input" v-model="filters.contest" @keyup.enter="applyFilters">
           </div>
           <div class="filter-item">
             <label>由状态</label>
@@ -34,7 +34,7 @@
           </div>
         </div>
         <div class="filter-actions">
-          <button class="filter-button primary" @click="filterSubmissions">筛选</button>
+          <button class="filter-button primary" @click="applyFilters">筛选</button>
           <button class="filter-button" @click="resetFilters">重置</button>
         </div>
       </div>
@@ -46,84 +46,171 @@
           <tr>
             <th>状态</th>
             <th>题目</th>
-            <th>递交者</th>
             <th>时间</th>
             <th>语言</th>
             <th>递交时间</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="submission in filteredSubmissions" :key="submission.id">
+          <tr v-for="submission in currentPageData" :key="submission.id">
             <td class="status-cell">
-              <span :class="['status-icon', submission.status]">
-                {{ submission.status === 'accepted' ? '✓' : '✕' }}
+              <span :class="['status-icon', submission.status === 'Accepted' ? 'accepted' : 'rejected']">
+                {{ submission.status === 'Accepted' ? '✓' : '✕' }}
               </span>
             </td>
-            <td>{{ submission.problem }}</td>
-            <td>{{ submission.submitter }}</td>
-            <td>{{ submission.time }}</td>
+            <td>{{ submission.probName }}</td>
+            <td>{{ submission.wallTime }}</td>
             <td>{{ submission.language }}</td>
-            <td>{{ submission.submissionTime }}</td>
+            <td>{{ submission.recordTime }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="pagination">
+      <button @click="prevPage" :disabled="currentPage === 1" class="pagination-button">上一页</button>
+      <span class="pagination-info">第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+      <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button">下一页</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const Token = ref(localStorage.getItem('token'));
 
 const filters = ref({
   problem: '',
   contest: '',
   status: '',
   language: ''
-})
+});
 
-const originalSubmissions = ref([
-  {
-    id: 1,
-    status: 'accepted',
-    problem: 'P1 跳台阶',
-    submitter: 'czy',
-    time: '51ms',
-    language: 'C++',
-    submissionTime: '4分钟前'
-  },
-  {
-    id: 2,
-    status: 'rejected',
-    problem: 'P2 动态规划',
-    submitter: 'user2',
-    time: '62ms',
-    language: 'Python',
-    submissionTime: '10分钟前'
+const allData = ref([]); // 存储所有数据
+const filteredData = ref([]); // 筛选后的数据
+const currentPage = ref(1);
+const pageSize = 15;
+
+// 计算属性
+const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize));
+const currentPageData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  const end = start + pageSize;
+  return filteredData.value.slice(start, end);
+});
+
+// 获取所有数据
+const fetchAllData = async () => {
+  try {
+    allData.value = [];
+    let page = 1;
+    let hasMore = true;
+    
+    while(hasMore) {
+      const url = buildUrl(page);
+      const response = await axios.get(url, {
+        headers: { 'Token': Token.value }
+      });
+      
+      if(response.data.errCode === 1000) {
+        const records = response.data.data.records || response.data.data;
+        if(records.length > 0) {
+          allData.value.push(...records);
+          page++;
+          hasMore = records.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      } else {
+        handleError(response.data.errCode);
+        hasMore = false;
+      }
+    }
+    
+    applyFiltersToData();
+  } catch (error) {
+    console.error('API请求失败:', error);
   }
-])
+};
 
-const filteredSubmissions = computed(() => {
-  return originalSubmissions.value.filter(submission => {
-    const problemMatch = !filters.value.problem || submission.problem.includes(filters.value.problem)
-    const contestMatch = !filters.value.contest || submission.contest && submission.contest.includes(filters.value.contest)
-    const statusMatch = !filters.value.status || submission.status ===filters.value.status
-    const languageMatch = !filters.value.language || submission.language.includes(filters.value.language)
-    return problemMatch && contestMatch && statusMatch && languageMatch
-  })
-})
+// 构建请求URL
+const buildUrl = (page) => {
+  let url = `/api/getRecord/${pageSize}/${page}`;
+  const queryParams = [];
+  
+  if(filters.value.problem) queryParams.push(`problem=${encodeURIComponent(filters.value.problem)}`);
+  if(filters.value.contest) queryParams.push(`contest=${encodeURIComponent(filters.value.contest)}`);
+  if(filters.value.status) {
+    const statusValue = filters.value.status === 'accepted' ? 'Accepted' : '';
+    queryParams.push(`status=${encodeURIComponent(statusValue)}`);
+  }
+  if(filters.value.language) queryParams.push(`language=${encodeURIComponent(filters.value.language)}`);
+  
+  if(queryParams.length > 0) {
+    url += `?${queryParams.join('&')}`;
+  }
+  
+  return url;
+};
 
-const filterSubmissions = () => {
-  // 筛选逻辑已经在 computed 中实现，这里无需额外处理
-}
+// 应用筛选条件
+const applyFiltersToData = () => {
+  filteredData.value = allData.value.filter(submission => {
+    const problemMatch = !filters.value.problem || 
+      submission.probName.toLowerCase().includes(filters.value.problem.toLowerCase());
+    const contestMatch = !filters.value.contest || 
+      (submission.contest && submission.contest.toLowerCase().includes(filters.value.contest.toLowerCase()));
+    const statusMatch = filters.value.status === 'accepted' ? 
+      submission.status === 'Accepted' : 
+      filters.value.status === 'rejected' ? 
+      submission.status !== 'Accepted' : 
+      true;
+    const languageMatch = !filters.value.language || 
+      submission.language.toLowerCase().includes(filters.value.language.toLowerCase());
+    
+    return problemMatch && contestMatch && statusMatch && languageMatch;
+  });
+  
+  currentPage.value = 1;
+};
 
+// 筛选操作
+const applyFilters = () => {
+  fetchAllData();
+};
+
+// 重置筛选
 const resetFilters = () => {
   filters.value = {
     problem: '',
     contest: '',
     status: '',
     language: ''
+  };
+  fetchAllData();
+};
+
+// 分页控制
+const prevPage = () => currentPage.value > 1 && currentPage.value--;
+const nextPage = () => currentPage.value < totalPages.value && currentPage.value++;
+
+const handleError = (errCode) => {
+  // 保持原有的错误处理逻辑
+  switch (errCode) {
+    case 1001:
+      alert('请先登录！');
+      router.push('/login');
+      break;
+    // ...其他错误处理
   }
-}
+};
+
+onMounted(() => {
+  fetchAllData();
+});
 </script>
 
 <style scoped>
@@ -139,8 +226,8 @@ const resetFilters = () => {
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
-  width:78%;
-  margin:auto;
+  width: 78%;
+  margin: auto;
 }
 
 .filter-row {
@@ -198,8 +285,8 @@ const resetFilters = () => {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
-  height: 38px; /* Match input height */
-  width:70px;
+  height: 38px;
+  width: 70px;
 }
 
 .filter-button:hover {
@@ -210,7 +297,7 @@ const resetFilters = () => {
   background: #1890ff;
   color: white;
   border-color: #1890ff;
-  width:70px;
+  width: 70px;
 }
 
 .filter-button.primary:hover {
@@ -222,8 +309,8 @@ const resetFilters = () => {
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
-  width:78%;
-  margin:auto;
+  width: 78%;
+  margin: auto;
 }
 
 .submissions-table {
@@ -275,6 +362,62 @@ const resetFilters = () => {
 .status-icon.rejected {
   background: #fff2f0;
   color: #ff4d4f;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid #eee;
+}
+
+.pagination button {
+  padding: 4px 8px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  background: #e6f7ff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.pagination button:disabled {
+  border-color: #ddd;
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 12px;
+  color: #666;
+}
+
+.pagination-button {
+  padding: 0.5rem 1rem;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background: #40a9ff;
+}
+
+.pagination-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 1rem;
+  color: #666;
 }
 
 @media (max-width: 1200px) {

@@ -13,6 +13,9 @@
             <label>用户名</label>
             <input type="text" placeholder="2至10位，建议大小写字母、数字" v-model="username" :class="{'is-invalid': isInvalid}">
             <p v-if="isInvalid" class="warning">用户名长度应在2 - 10个字符之间</p>
+            <p v-if="usernameMessage" :class="{'success': usernameMessage === '用户名可用', 'warning': usernameMessage !== '用户名可用'}">
+    {{ usernameMessage }}
+  </p>
           </div>
           <div class="form-group">
             <label>密码</label>
@@ -47,6 +50,22 @@
             <input type="file" @change="handleAvatarChange">
             <img v-if="selectedAvatar" :src="selectedAvatar" alt="选择的头像" class="preview-avatar">
           </div>
+          <div class="form-group">
+          <label>性别</label>
+          <select v-model="userSex">
+          <option value="0">女</option>
+          <option value="1">男</option>
+          <option value="2">未知</option>
+          </select>
+          </div>
+          <div class="form-group">
+          <label>手机号</label>
+          <input type="text" placeholder="请输入手机号" v-model="userPhone">
+          </div>
+          <div class="form-group">
+          <label>学校</label>
+          <input type="text" placeholder="请输入学校名称" v-model="userSchool">
+          </div>
           <div>
             <button type="submit" class="register-btn">注册</button>
             <p v-if="Message2" class="warning">{{ Message2 }}</p>
@@ -66,7 +85,9 @@ import axios from 'axios';
 import router from '@/router';
 import { RouterLink } from 'vue-router';
 
-const username = ref('');
+const userSex = ref('2'); // 默认值为 "未知"
+const userPhone = ref('');
+const userSchool = ref('');
 const password = ref('');
 const isInvalid = ref(false);
 const isInvalid1 = ref(false);
@@ -84,7 +105,8 @@ const Message2 = ref('');
 const selectedAvatarFile = ref(null);
 // 新增：存储头像的预览 URL
 const selectedAvatar = ref('');
-
+const username = ref('');
+const usernameMessage = ref(''); 
 const postEmail = async () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email.value)) {
@@ -137,8 +159,25 @@ onMounted(() => {
   });
 });
 
-watch(username, (newValue) => {
+watch(username, async(newValue) => {
   isInvalid.value = newValue.length < 2 || newValue.length > 10;
+  if (!isInvalid.value && newValue) {
+    try {
+      // 将用户名进行 Base64 编码
+      const base64Username = btoa(newValue);
+      const response = await axios.get(`/api/nameUsable/${base64Username}`);
+      if (response.data.errCode === 1000) {
+        usernameMessage.value = '用户名可用';
+      } else {
+        usernameMessage.value = '用户名已被使用';
+      }
+    } catch (error) {
+      console.error('用户名检测失败:', error);
+      usernameMessage.value = '网络错误，请稍后再试';
+    }
+  } else {
+    usernameMessage.value = '';
+  }
 });
 
 watch(password, (newValue) => {
@@ -158,13 +197,25 @@ const submitForm = async () => {
   formData.append('emailVerifyCode', verificationCode.value);
   formData.append('emailVerifyKey', emailVerifyKey.value);
   formData.append('captchaToken', captchaToken.value);
+
+  // 新增：添加可选参数
+  if (userSex.value) {
+    formData.append('userSex', Number(userSex.value));
+  }
+  if (userPhone.value) {
+    formData.append('userPhone', userPhone.value);
+  }
+  if (userSchool.value) {
+    formData.append('userSchool', userSchool.value);
+  }
+
   // 新增：添加头像文件到表单数据
   if (selectedAvatarFile.value) {
     formData.append('profile', selectedAvatarFile.value);
   }
 
   try {
-    const response = await axios.post('/api/register', formData,{
+    const response = await axios.post('/api/register', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -196,6 +247,10 @@ onMounted(() => {
 /* 警告信息的样式 */
 .warning {
   color: red;
+  font-size: 12px;
+}
+.success {
+  color: green;
   font-size: 12px;
 }
 /* 全局样式重置 */
@@ -307,6 +362,7 @@ body {
   color: #666;
 }
 
+.form-group select,
 .form-group input {
   width: 100%;
   padding: 0.75rem;
@@ -315,6 +371,7 @@ body {
   font-size: 1rem;
 }
 
+.form-group select:focus,
 .form-group input:focus {
   outline: none;
   border-color: #3498db;

@@ -9,15 +9,15 @@
     <div class="nav-right">
       <div v-if="isLoggedIn">
         <!-- 显示用户头像 -->
-        <img :src="avatar" alt="Avatar" class="avatar">
+        <img :src="avatar" alt="Avatar" class="avatar"> 
         <!-- 显示用户名 -->
         <span @click="toggleDropdown" class="username-span">{{ username }}</span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <!-- 下拉框 -->
         <div v-if="isDropdownVisible" class="dropdown">
-          <RouterLink to="/login" @click="logout">退出登录</RouterLink>
-          <RouterLink to="/settings">账号设置</RouterLink>
-        </div>
+  <RouterLink to="/profile">个人主页</RouterLink>
+  <RouterLink to="/login" @click="logout">退出登录</RouterLink>
+</div>
       </div>
       <div v-else>
         <!-- 未登录时显示登录和注册链接 -->
@@ -82,7 +82,6 @@ const logout = () => {
 const toggleDropdown = () => {
   isDropdownVisible.value =!isDropdownVisible.value;
 };
-
 // 点击页面其他地方关闭下拉框
 const handleClickOutside = (event: MouseEvent) => {
   const dropdown = document.querySelector('.dropdown');

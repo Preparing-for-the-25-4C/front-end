@@ -15,12 +15,12 @@
         <tbody>
           <tr v-for="(user, index) in users" :key="user.userId" :class="{ 'odd-row': (currentPage - 1) * pageSize + index % 2 === 0 }">
             <td class="ranking">{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-            <td class="username">
-              <div class="user-info">
-                <div class="avatar" :style="{ backgroundImage: `url(${user.userProfile})` }"></div>
-                <span>{{ user.userName }}</span>
-              </div>
-            </td>
+            <td class="username" @click="visitUser(user.userId)">
+  <div class="user-info">
+    <div class="avatar" :style="{ backgroundImage: `url(${user.userProfile})` }"></div>
+    <span class="clickable">{{ user.userName }}</span>
+  </div>
+</td>
             <td class="ac-count">{{ user.acCount }}</td>
             <td class="introduction">{{ user.userSchool }}</td>
             <td class="actions">
@@ -44,6 +44,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const visitUser = (userId) => {
+  router.push(`/user/${userId}`);
+};
 
 const pageSize = 20;
 const currentPage = ref(1);
@@ -146,7 +153,15 @@ onMounted(() => {
 .page-info {
   color: #666;
 }
+.clickable {
+  color: #333; /* 将字体颜色改为黑色 */
+  cursor: pointer;
+  text-decoration: none; /* 去掉下划线 */
+}
 
+.clickable:hover {
+  color: #555; /* 悬停时字体颜色稍微变深 */
+}
 .avatar {
   background-size: cover;
   background-position: center;
@@ -156,7 +171,6 @@ onMounted(() => {
   border-collapse: collapse;
   font-size: 14px;
 }
-
 .ranking-table th {
   text-align: left;
   padding: 16px;

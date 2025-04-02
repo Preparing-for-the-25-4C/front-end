@@ -1,6 +1,6 @@
 import {createApp} from 'vue'
 import App from './App.vue'
-import router from './router'
+import router from '@/router'
 import axios from 'axios';
 const app=createApp(App)
 app.use(router)
@@ -32,8 +32,8 @@ const instance = axios.create({
             const response = await axios.post(`/api/isLogin/${token}` );
             if(response.data.errCode==1006){
             localStorage.removeItem('token')
-            router.push('/login');
             alert('Token 已过期，请重新登录');
+            router.push('/login');
           }
           return Promise.reject(error);
         }

@@ -8,6 +8,8 @@ import login from '@/components/login.vue'
 import forgetpwd from '@/components/forgetpwd.vue'
 import program from '@/components/program.vue'
 import settings from '@/components/settings.vue'
+import profile from '@/components/Profile.vue'
+import UserProfile from '@/components/UserProfile.vue'
 const router=createRouter({
     history:createWebHistory(),
     routes:[
@@ -47,6 +49,14 @@ const router=createRouter({
         {
             path:'/settings',
             component:settings
+        },
+        {
+            path:'/profile',
+            component:profile  
+        },
+        {
+            path:'/user/:userId',
+            component:UserProfile
         }
     ]
 })

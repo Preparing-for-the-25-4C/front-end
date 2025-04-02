@@ -4,6 +4,8 @@
     <br>
     <div class="settings-container">
       <h2>账号设置</h2>
+      <!-- 返回按钮 -->
+      <button @click="goBack" class="back-btn">返回个人主页</button>
       <div class="form-group">
         <label>选择头像</label>
         <input type="file" @change="handleAvatarChange">
@@ -12,7 +14,7 @@
       </div>
       <div class="form-group">
         <label>新密码</label>
-        <input type="password" v-model="newPassword" placeholder="请输入新密码">
+        <input type="password" v-model="newPassword" placeholder="请输入新密码,长度在8-20个字符之间">
       </div>
       <div class="form-group">
         <label>确认新密码</label>
@@ -38,7 +40,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
+
+const router = useRouter();
 
 const selectedAvatarFile = ref(null);
 const selectedAvatar = ref('');
@@ -49,12 +54,17 @@ const email = ref('');
 const emailVerifyCode = ref('');
 const emailVerificationMessage = ref('');
 const emailVerifyKey = ref('');
-const token=ref();
+const token = ref();
 
 onMounted(() => {
   email.value = localStorage.getItem('email');
   token.value = localStorage.getItem('token');
 });
+
+// 返回到个人主页
+const goBack = () => {
+  router.push('/profile');
+};
 
 const handleAvatarChange = (e) => {
   const file = e.target.files[0];
@@ -84,42 +94,7 @@ const updateAvatar = async () => {
     if (response.data.errCode === 1000) {
       alert('头像更新成功');
     } else {
-      if (response.data.errCode === 1001) {
-        alert('服务器内部错误');
-      }
-      if (response.data.errCode === 1002) {
-        alert('验证码错误');
-      }
-      if (response.data.errCode === 1003) {
-        alert('用户名或密码错误'); 
-      }
-      if(response.data.errCode === 1004){
-        alert('幂等性错误'); 
-      }
-      if(response.data.errCode === 1005){
-        alert('用户名已存在');
-      }
-      if(response.data.errCode === 1006){
-        alert('token过期'); 
-      }
-      if(response.data.errCode === 1007){
-        alert('邮箱验证码错误'); 
-      }
-      if(response.data.errCode === 1008){
-        alert('数据不符合规范'); 
-      }
-      if(response.data.errCode === 1009){
-        alert('邮箱已被使用'); 
-      }
-      if(response.data.errCode === 1010){
-        alert('手机号已被使用'); 
-      }
-      if(response.data.errCode === 1011){
-        alert('不存在的静态资源'); 
-      }
-      else{
-        alert('头像更新失败');
-      }
+      alert('头像更新失败');
     }
   } catch (error) {
     console.error('Error updating avatar:', error);
@@ -134,15 +109,7 @@ const sendEmailVerificationCode = async () => {
       emailVerificationMessage.value = '验证邮件已发送，请查看您的邮箱。';
       emailVerifyKey.value = response.data.data.emailVerifyKey;
     } else {
-      if (response.data.errCode === 1009) {
-        emailVerificationMessage.value = '邮箱已被使用';
-      } else if (response.data.errCode === 1001) {
-        emailVerificationMessage.value = '服务器内部错误';
-      } else if (response.data.errCode === 1004) {
-        emailVerificationMessage.value = '用户操作太频繁，请稍后再试';
-      } else {
-        emailVerificationMessage.value = '发送验证码失败，请重试。';
-      }
+      emailVerificationMessage.value = '发送验证码失败，请重试。';
     }
   } catch (error) {
     console.error('Error sending email verification code:', error);
@@ -166,42 +133,7 @@ const updatePassword = async () => {
     if (response.data.errCode === 1000) {
       alert('密码更新成功');
     } else {
-      if (response.data.errCode === 1001) {
-        alert('服务器内部错误');
-      }
-      if (response.data.errCode === 1002) {
-        alert('验证码错误');
-      }
-      if (response.data.errCode === 1003) {
-        alert('用户名或密码错误'); 
-      }
-      if(response.data.errCode === 1004){
-        alert('幂等性错误'); 
-      }
-      if(response.data.errCode === 1005){
-        alert('用户名已存在');
-      }
-      if(response.data.errCode === 1006){
-        alert('token过期'); 
-      }
-      if(response.data.errCode === 1007){
-        alert('邮箱验证码错误'); 
-      }
-      if(response.data.errCode === 1008){
-        alert('数据不符合规范'); 
-      }
-      if(response.data.errCode === 1009){
-        alert('邮箱已被使用'); 
-      }
-      if(response.data.errCode === 1010){
-        alert('手机号已被使用'); 
-      }
-      if(response.data.errCode === 1011){
-        alert('不存在的静态资源'); 
-      }
-      else{
-        alert('密码更新失败');
-      }
+      alert('密码更新失败');
     }
   } catch (error) {
     console.error('Error updating password:', error);
@@ -246,13 +178,7 @@ const updatePassword = async () => {
 .captcha-group {
   display: flex;
   gap: 0.5rem;
-  align-items: center; /* 确保输入框和按钮垂直对齐 */
-}
-
-.captcha-group .short-input {
-  flex: 1;
-  height: 34px;
-  max-width: 500px; /* 调整输入框的最大宽度 */
+  align-items: center;
 }
 
 .preview-avatar {
@@ -264,7 +190,7 @@ const updatePassword = async () => {
   object-fit: cover;
 }
 
-.update-btn, .send-code-btn {
+.update-btn, .send-code-btn, .back-btn {
   display: block;
   margin-top: 20px;
   padding: 10px 20px;
@@ -273,21 +199,13 @@ const updatePassword = async () => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  white-space: nowrap; /* 确保按钮文字不换行 */
-}
-.send-code-btn {
-  padding: 8px 20px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap; /* 确保按钮文字不换行 */
-  margin-top: 0; /* 移除顶部外边距 */
-  height: 34px; /* 与输入框高度保持一致 */
 }
 
-.update-btn:hover, .send-code-btn:hover {
+.back-btn {
+  background-color: #95a5a6;
+}
+
+.update-btn:hover, .send-code-btn:hover, .back-btn:hover {
   background-color: #2980b9;
 }
 

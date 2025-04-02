@@ -17,7 +17,6 @@
         <button class="btn" @click="handleSubmitCode">提交</button>
       </div>
     </div>
-
     <main class="main-content">
       <!-- 最左侧边栏 -->
       <aside class="far-left-sidebar">
@@ -73,15 +72,24 @@
       <div class="code-panel">
         <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
         <div class="output-panel">
-          <div class="panel-header">
-            <span class="panel-title">运行结果</span>
-            <div class="panel-actions">
-              <button class="btn" @click="clearOutput">清空</button>
-              <button class="btn" @click="copyOutput">复制</button>
-            </div>
-          </div>
-          <div class="panel-content">{{ output }}</div>
-        </div>
+  <div class="panel-content">
+    <div class="input-output-container">
+      <!-- 左侧输入框 -->
+      <div class="input-section">
+        <h3>输入数据</h3>
+        <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
+      </div>
+      <!-- 右侧运行结果 -->
+      <div class="output-section">
+        <h3>运行结果</h3>
+        <pre class="output-box">{{ stdOut }}</pre>
+      </div>
+    </div>
+    <div class="panel-actions">
+      <button class="btn" @click="clearOutput">清空</button>
+    </div>
+  </div>
+</div>
       </div>
     </main>
   </div>
@@ -90,12 +98,17 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
+import { useRouter } from 'vue-router';
+import router from '@/router';
 
 const selectedStatus = ref('');
 const currentPage = ref(1);
 const totalPages = ref(1);
 const pageSize = 5;
-
+const stdIn = ref(''); // 输入数据
+const stdOut = ref(''); // 输出结果
+const code = ref(''); // 用户编写的代码
+const selectedLanguage = ref(71); // 默认语言 ID
 interface SubmissionRecord {
   probName: string;
   status: string;
@@ -108,6 +121,7 @@ interface SubmissionRecord {
 const submissionData = reactive<SubmissionRecord[]>([]);
 
 const fetchSubmissionRecords = async (page: number) => {
+try {
   const response = await axios.get(`/api/getRecord/${pageSize}/${page}`, {
     headers: { 'Token': Token.value },
     params: {
@@ -116,25 +130,28 @@ const fetchSubmissionRecords = async (page: number) => {
       status: selectedStatus.value === 'Accepted' ? 'Accepted' : 'No Accepted'
     }
   });
+
   if (response.data.errCode === 1000) {
     submissionData.splice(0, submissionData.length, 
-      ...response.data.data.map((record: any) => ({
-        probName: record.probName,
-        status: record.status,
-        language: record.language,
-        time: `${record.wallTime}ms`,
-        code: decodeURIComponent(escape(atob(record.codeOnBase64.replace(/-/g, '+').replace(/_/g, '/')))),
-        recordTime: record.recordTime
-      }))
-    );
-    // 如果返回的数据长度小于 pageSize，说明已经是最后一页
-    totalPages.value = response.data.data.length < pageSize ? currentPage.value : currentPage.value + 1;
+        ...response.data.data.map((record: any) => ({
+          probName: record.probName,
+          status: record.status,
+          language: record.language,
+          time: `${record.wallTime}ms`,
+          code: decodeURIComponent(escape(atob(record.codeOnBase64.replace(/-/g, '+').replace(/_/g, '/')))),
+          recordTime: record.recordTime
+        }))
+      );
+      totalPages.value = response.data.data.length < pageSize ? currentPage.value : currentPage.value + 1;
   } else {
     handleSubmitError(response.data.errCode);
     alert('获取提交记录失败');
   }
+} catch (error) {
+  console.error('请求提交记录失败:', error);
+  alert('请求提交记录失败，请检查网络或服务器状态');
+}
 };
-
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -156,8 +173,6 @@ const languages = ref([
   { id: 63, name: 'JavaScript (Node.js 12.14.0)' },
   { id: 71, name: 'Python (3.8.1)' }
 ]);
-
-const selectedLanguage = ref(71);
 
 const handleSubmitCode = async () => {
   if (!code.value.trim()) {
@@ -190,10 +205,11 @@ const getStatusClass = (status: string) => {
 };
 
 onMounted(async () => {
-  if (route.query.id) {
-    await fetchProblemDetails();
-    fetchSubmissionRecords(1);
-  }
+if (route.query.id) {
+  await fetchProblemDetails();
+  currentPage.value = 1; // 确保从第一页开始
+  fetchSubmissionRecords(1); // 加载第一页数据
+}
 });
 
 const pollingInterval = ref<ReturnType<typeof setInterval>>();
@@ -277,13 +293,42 @@ const fetchProblemDetails = async () => {
   if (response.data.errCode === 1000) {
     problemDetails.description = response.data.data;
   } else {
-    handleSubmitError(response.data.errCode);
-    problemDetails.description = '题目加载失败';
+    if (response.data.errCode === 1001) {
+            alert('请先登录！');
+            router.push('/login'); // 重定向到登录页面
+        }
+        if (response.data.errCode === 1002) {
+            alert('验证码错误');
+        }
+        if (response.data.errCode === 1003) {
+            alert('用户名或密码错误'); 
+        }
+        if(response.data.errCode === 1004){
+            alert('幂等性错误'); 
+        }
+        if(response.data.errCode === 1005){
+            alert('用户名已存在');
+        }
+        if(response.data.errCode === 1006){
+            alert('token过期'); 
+        }
+        if(response.data.errCode === 1007){
+            alert('邮箱验证码错误'); 
+        }
+        if(response.data.errCode === 1008){
+            alert('数据不符合规范'); 
+        }
+        if(response.data.errCode === 1009){
+            alert('邮箱已被使用'); 
+        }
+        if(response.data.errCode === 1010){
+            alert('手机号已被使用'); 
+        }
+        if(response.data.errCode === 1011){
+            alert('不存在的静态资源'); 
+        }
   }
 };
-
-const code = ref('');
-const output = ref('');
 const isSubmissionDetailsActive = ref(false);
 const activeSubmission = reactive({
   status: '',
@@ -292,23 +337,109 @@ const activeSubmission = reactive({
   memory: '',
   code: ''
 });
+const runCode = async () => {
+  if (!code.value.trim()) {
+    alert('代码不能为空');
+    return;
+  }
+    // 调用 /api/runCode 接口
+    const response = await axios.post('/api/runCode', {
+      sourceCode: code.value,
+      languageId: selectedLanguage.value,
+      stdIn: stdIn.value
+    });
 
-function runCode() {
-  output.value = '运行中...';
-  setTimeout(() => {
-    output.value = code.value || 'No output';
-  }, 500);
-}
+    if (response.data.errCode === 1000) {
+      alert('代码运行成功');
+      const runToken = response.data.data; // 获取 runToken
+      await fetchRunResult(runToken); // 获取运行结果
+    } else {
+      if (response.data.errCode === 1001) {
+            alert('服务器内部错误');
+        }
+        if (response.data.errCode === 1002) {
+            alert('验证码错误');
+        }
+        if (response.data.errCode === 1003) {
+            alert('用户名或密码错误'); 
+        }
+        if(response.data.errCode === 1004){
+            alert('幂等性错误'); 
+        }
+        if(response.data.errCode === 1005){
+            alert('用户名已存在');
+        }
+        if(response.data.errCode === 1006){
+            alert('token过期'); 
+        }
+        if(response.data.errCode === 1007){
+            alert('邮箱验证码错误'); 
+        }
+        if(response.data.errCode === 1008){
+            alert('数据不符合规范'); 
+        }
+        if(response.data.errCode === 1009){
+            alert('邮箱已被使用'); 
+        }
+        if(response.data.errCode === 1010){
+            alert('手机号已被使用'); 
+        }
+        if(response.data.errCode === 1011){
+            alert('不存在的静态资源'); 
+        }
+    }
 
-function clearOutput() {
-  output.value = '';
-}
+};
+const fetchRunResult = async (runToken:any) => {
+  try {
+    // 调用 /api/getRunRes/{runToken} 接口
+    const response = await axios.get(`/api/getRunRes/${runToken}`);
 
-function copyOutput() {
-  navigator.clipboard.writeText(output.value)
-    .then(() => alert('已复制到剪贴板'))
-    .catch(err => console.error('复制失败:', err));
-}
+    if (response.data.errCode === 1000) {
+      // 解码 Base64 编码的 stdOut
+      const decodedOutput = atob(response.data.data.stdOut.trim());
+      stdOut.value = decodedOutput; // 设置运行结果
+    } else {
+      if (response.data.errCode === 1016) {
+        alert('代码正在运行中');
+      }
+      if (response.data.errCode === 1001) {
+        alert('服务器内部错误');
+      }
+      if (response.data.errCode === 1002) {
+        alert('验证码错误');
+      }
+      if (response.data.errCode === 1003) {
+        alert('用户名或密码错误');
+      }
+      if (response.data.errCode === 1004) {
+        alert('幂等性错误');
+      }
+      if (response.data.errCode === 1005) {
+        alert('用户名已存在');
+      }
+      if (response.data.errCode === 1006) {
+        alert('token过期');
+      }
+      if (response.data.errCode === 1007) {
+        alert('邮箱验证码错误');
+      }
+      if (response.data.errCode === 1008) {
+        alert('数据不符合规范');
+      }
+      if (response.data.errCode === 1009) {
+        alert('邮箱已被使用');
+      }
+    }
+  } catch (error) {
+    console.error('获取运行结果失败:', error);
+    alert('获取运行结果失败，请检查网络或服务器状态');
+  }
+};
+const clearOutput = () => {
+  stdIn.value = '';
+  stdOut.value = '';
+};
 
 function showSubmissionDetails(submissionId: number) {
   const submission = submissionData.find((s, index) => index === submissionId);
@@ -393,6 +524,12 @@ body {
   transition: all 0.2s;
   font-size: 12px;
 }
+.output-section h3 {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
 .pagination button:disabled {
   border-color: #ddd;
   background: #f5f5f5;
@@ -449,13 +586,11 @@ body {
   display: flex;
   gap: 8px;
 }
-
 .btn {
-  padding: 4px 12px;
+  padding: 8px 16px;
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
   background: white;
 }
 
@@ -464,6 +599,15 @@ body {
   color: white;
   border-color: #1890ff;
 }
+
+.btn-primary:hover {
+  background-color: #40a9ff;
+}
+
+.btn:hover {
+  background-color: #f0f0f0;
+}
+
 
 /* 主要内容区域 - 四列布局 */
 .main-content {
@@ -603,20 +747,16 @@ body {
 }
 
 .output-panel {
-  height: 200px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
   display: flex;
   flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  background: #f8f9fa;
 }
 
 .panel-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8f9fa;
+  display: none; /* 隐藏标题部分 */
 }
 
 .panel-title {
@@ -625,7 +765,9 @@ body {
 }
 
 .panel-actions {
+  margin-top: 12px;
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -637,7 +779,17 @@ body {
   overflow-y: auto;
   background: white;
 }
-
+.output-box {
+  height: 150px;
+  overflow-y: auto;
+  background: #f5f5f5;
+  white-space: pre-wrap; /* 保留换行符并自动换行 */
+  word-wrap: break-word; /* 长单词换行 */
+  font-family: monospace; /* 使用等宽字体 */
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
 /* 提交详情覆盖层 */
 .submission-details {
   position: absolute;
@@ -689,5 +841,37 @@ body {
 
 .status-wrong {
   background-color: #f5222d;
+}
+.input-output-container {
+  display: flex;
+  gap: 16px;
+}
+
+.input-section,
+.output-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-box,
+.output-box {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 14px;
+  resize: none;
+  background: white;
+}
+.input-box {
+  height: 150px;
+}
+
+.output-box {
+  height: 150px;
+  overflow-y: auto;
+  background: #f5f5f5;
 }
 </style>

@@ -74,7 +74,7 @@ const handleSubmit = async () => {
       alert('登录成功');
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('perms', JSON.stringify(response.data.data.perms));
-      localStorage.setItem('loginUser', response.data.data.loginUser);
+      localStorage.setItem('loginUser', JSON.stringify(response.data.data.loginUser));
       localStorage.setItem('username', response.data.data.loginUser.userName);
       // 存储用户头像信息
       localStorage.setItem('avatar', response.data.data.loginUser.userProfile);
