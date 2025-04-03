@@ -61,7 +61,7 @@ const token = ref(localStorage.getItem('token') || '');
 const fetchRankData = async () => {
   try {
     const response = await axios.get(`/api/getRanks/${pageSize}/${currentPage.value}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
+      headers: { 'Token': `${token.value}` }
     });
     if (response.data.errCode === 1000) {
       users.value = response.data.data.rankData;

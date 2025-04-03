@@ -255,16 +255,15 @@ const nextPage = () => {
 
 // 获取题目数据
 const fetchProblems = async () => {
-  const response = await axios.get(
+  const response = await axios.post(
       `/api/getProblems/${pageSize.value}/${pageNum.value}`,
       {
-        // 请求体中的参数
-        status: queryParams.value.status,
-        probSkill: queryParams.value.probSkill,
-        difficulty: queryParams.value.difficulty,
-        desc: queryParams.value.desc,
-        orderBy: queryParams.value.orderBy,
-        vague: queryParams.value.vague
+        "status": queryParams.value.status,
+        "probSkill": queryParams.value.probSkill,
+        "difficulty": queryParams.value.difficulty,
+        "desc": queryParams.value.desc,
+        "orderBy": queryParams.value.orderBy,
+        "vague": queryParams.value.vague
       },
       {
         headers: {
