@@ -38,68 +38,73 @@
     <section class="section">
       <h2 class="section-title">题单</h2>
       <div class="problem-grid" id="problemGrid">
-        <div v-for="(problemSet, index) in paginatedProblemSets" :key="index" class="problem-card" @click="openModal(problemSet)">
-          <div class="problem-content">
-            <div class="problem-image" :class="getProblemSetClass(problemSet.title)"></div>
-            <div class="problem-info">
-              <p>{{ problemSet.title }}</p>
-              <p>题目数量: {{ problemSet.problems.length }}</p>
-            </div>
-          </div>
-        </div>
+  <div
+    v-for="(problemSet, index) in paginatedProblemSets"
+    :key="index"
+    class="problem-card"
+    @click="openModal(problemSet)"
+  >
+    <div class="problem-content">
+      <div class="problem-image" :class="getProblemSetClass(problemSet.title)"></div>
+      <div class="problem-info">
+        <p>{{ problemSet.title }}</p>
+        <p>题目数量: {{ problemSet.problems.length }}</p>
       </div>
-      <div class="pagination">
-        <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
-        <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
-        <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
-      </div>
+    </div>
+  </div>
+</div>
+<div class="pagination">
+  <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+  <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+  <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
+</div>
     </section>
   </main>
 
   <div class="modal-overlay" :style="{ display: modalVisible ? 'block' : 'none' }" @click="closeModal"></div>
   <div class="modal" :style="{ display: modalVisible ? 'block' : 'none' }">
-    <div class="modal-header">
-      <h2 class="modal-title">《{{ currentProblemSet.title }}》题目练习</h2>
-      <button class="modal-close" @click="closeModal">&times;</button>
-    </div>
-    <div class="modal-content">
-      <div class="modal-stats">
-        通过题目：0题（共{{ currentProblemSet.problems.length }}题）
-      </div>
-      <table class="modal-table">
-        <thead>
-          <tr>
-            <th>题号</th>
-            <th>标题</th>
-            <th>通过率</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="problem in currentProblemSet.problems" :key="problem.id">
-            <td>{{ problem.id.toString().padStart(3, '0') }}</td>
-            <td>{{ problem.title }}</td>
-            <td>{{ problem.passRate }}%</td>
-            <td>
-              <RouterLink 
-                class="submit-btn" 
-                :to="{
-                  path: '/program',
-                  query: { 
-                    id: problem.id,
-                    title: problem.title,
-                    difficulty: problem.difficulty || '未知'
-                  }
-                }"
-              >
-                挑战
-              </RouterLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  <div class="modal-header">
+    <h2 class="modal-title">《{{ currentProblemSet.title }}》题目练习</h2>
+    <button class="modal-close" @click="closeModal">&times;</button>
   </div>
+  <div class="modal-content">
+  <div class="modal-stats">
+    共 {{ currentProblemSet.problems.length }} 题
+  </div>
+  <table class="modal-table">
+    <thead>
+      <tr>
+        <th>题号</th>
+        <th>标题</th>
+        <th>通过率</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="problem in currentProblemSet.problems" :key="problem.id">
+        <td>{{ problem.id.toString().padStart(3, '0') }}</td>
+        <td>{{ problem.title }}</td>
+        <td>{{ problem.passRate }}%</td>
+        <td>
+          <RouterLink
+            class="submit-btn"
+            :to="{
+              path: '/program',
+              query: {
+                id: problem.id,
+                title: problem.title,
+                difficulty: problem.difficulty || '未知',
+              },
+            }"
+          >
+            挑战
+          </RouterLink>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div>
 </template>
 
 <script setup>
@@ -226,10 +231,10 @@ const pageSize = 6
 const totalPages = computed(() => Math.ceil(problemSets.value.length / pageSize))
 
 const paginatedProblemSets = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return problemSets.value.slice(start, end)
-})
+  const start = (currentPage.value - 1) * pageSize;
+  const end = start + pageSize;
+  return problemSets.value.slice(start, end);
+});
 
 // 获取特定题单的题目数量
 const getProblemCount = (title) => {
@@ -237,46 +242,47 @@ const getProblemCount = (title) => {
   return set ? set.problems.length : 0
 }
 
-// 从API获取问题
 const fetchProblems = async () => {
   try {
     const Token = localStorage.getItem('token');
-    const response = await axios.get(`/api/getProblems/100/1`, {
-      params: {
-        Token: Token
-      }
-    });
-    
-    if (response.data.errCode === 1000) {
-      const problems = response.data.data.probList;
-      problemSets.value.forEach(set => set.problems = []);
-      
-      problems.forEach(problem => {
-        const skills = (problem.probSkills || '').split(';');
-        skills.forEach(skill => {
-          const cleanSkill = skill.trim().toLowerCase();
-          if (!cleanSkill) return;
-          
-          const matchingSet = problemSets.value.find(set => 
-            set.title.toLowerCase().includes(cleanSkill)
-          );
-          if (matchingSet) {
-            matchingSet.problems.push({
-              id: problem.probId,
-              title: problem.probTitle,
-              passRate: problem.probSuccess,
-              difficulty: problem.difficulty
-            });
-          }
-        });
+    const batchSize = 5; // 每批发送 5 个请求
+
+    // 将请求分成批次
+    const batches = [];
+    for (let i = 0; i < problemSets.value.length; i += batchSize) {
+      const batch = problemSets.value.slice(i, i + batchSize).map((problemSet) =>
+        axios.post(
+          `/api/getProblems/1000/1`,
+          { probSkill: problemSet.title.trim().toLowerCase() },
+          { headers: { Token: Token } }
+        )
+      );
+      batches.push(batch);
+    }
+
+    // 按批次发送请求
+    for (const batch of batches) {
+      const responses = await Promise.all(batch);
+
+      // 处理每个请求的响应
+      responses.forEach((response, index) => {
+        const globalIndex = batches.indexOf(batch) * batchSize + index;
+        if (response.data.errCode === 1000) {
+          problemSets.value[globalIndex].problems = response.data.data.probList.map((problem) => ({
+            id: problem.probId,
+            title: problem.probTitle,
+            passRate: problem.probSuccess,
+            difficulty: problem.difficulty,
+          }));
+        } else {
+          console.error(`Error fetching problems for ${problemSets.value[globalIndex].title}:`, response.data);
+        }
       });
-    } else {
-      console.error('Error fetching problems:', response.data);
     }
   } catch (error) {
     console.error('API call failed:', error);
   }
-}
+};
 
 function prevPage() {
   if (currentPage.value > 1) {
@@ -291,9 +297,9 @@ function nextPage() {
 }
 
 function openModal(problemSet) {
-  currentProblemSet.value = problemSet
-  modalVisible.value = true
-  document.body.style.overflow = 'hidden'
+  currentProblemSet.value = problemSet; // 设置当前题单
+  modalVisible.value = true; // 显示模态框
+  document.body.style.overflow = 'hidden'; // 禁止页面滚动
 }
 
 function closeModal() {

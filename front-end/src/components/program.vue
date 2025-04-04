@@ -350,7 +350,6 @@ const runCode = async () => {
     });
 
     if (response.data.errCode === 1000) {
-      alert('代码运行成功');
       const runToken = response.data.data; // 获取 runToken
       await fetchRunResult(runToken); // 获取运行结果
     } else {

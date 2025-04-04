@@ -20,57 +20,103 @@
       <!-- 题目列表部分 -->
       <section class="problem-section">
         <div class="search-bar">
-          <select v-model="queryParams.status">
-            <option :value="null">状态</option>
-            <option value="通过">通过</option>
-            <option value="未通过">未通过</option>
-          </select>
-          <select v-model="queryParams.probSkill">
-            <option :value="null">标签</option>
-            <option value="数组">数组</option>
-            <option value="字符串">字符串</option>
-            <option value="链表">链表</option>
-            <option value="栈">栈</option>
-            <option value="队列">队列</option>
-            <option value="树">树</option>
-            <option value="图">图</option>
-            <option value="排序">排序</option>
-            <option value="查找">查找</option>
-            <option value="动态规划">动态规划</option>
-            <option value="贪心">贪心</option>
-            <option value="回溯">回溯</option>
-            <option value="分治">分治</option>
-            <option value="二分查找">二分查找</option>
-            <option value="位运算">位运算</option>
-            <option value="数学">数学</option>
-            <option value="几何">几何</option>
-            <option value="概率">概率</option>
-            <option value="统计">统计</option>
-            <option value="图论">图论</option>
-            <option value="搜索">搜索</option>
-            <option value="并查集">并查集</option>
-            <option value="拓扑排序">拓扑排序</option>
-            <option value="堆">堆</option>
-            <option value="哈希表">哈希表</option>
-            <option value="前缀和">前缀和</option>
-            <option value="双指针">双指针</option>
-            <option value="单调栈">单调栈</option>
-            <option value="单调队列">单调队列</option>
-          </select>
-          <select v-model="queryParams.difficulty">
-            <option :value="null">难度</option>
-            <option value="简单">简单</option>
-            <option value="中等">中等</option>
-            <option value="困难">困难</option>
-          </select>
-          <select v-model="queryParams.desc">
-            <option :value="false">排序</option>
-            <option value="false">升序</option>
-            <option value="true">降序</option>
-          </select>
-          <input type="text" placeholder="搜索题目" v-model="queryParams.orderBy"/>
-          <button @click="handleSearch">搜索</button>
-        </div>
+  <select v-model="queryParams.status">
+    <option :value="null">状态</option>
+    <option value="通过">通过</option>
+    <option value="未通过">未通过</option>
+  </select>
+  <select v-model="queryParams.probSkill">
+  <option :value="null">标签</option>
+  <option value="排序算法">排序算法</option>
+  <option value="查找算法">查找算法</option>
+  <option value="递归">递归</option>
+  <option value="分治算法">分治算法</option>
+  <option value="贪心算法">贪心算法</option>
+  <option value="动态规划">动态规划</option>
+  <option value="回溯算法">回溯算法</option>
+  <option value="枚举算法">枚举算法</option>
+  <option value="模拟算法">模拟算法</option>
+  <option value="数组">数组</option>
+  <option value="链表">链表</option>
+  <option value="栈">栈</option>
+  <option value="队列">队列</option>
+  <option value="哈希表">哈希表</option>
+  <option value="堆">堆</option>
+  <option value="树">树</option>
+  <option value="二叉树">二叉树</option>
+  <option value="二叉搜索树">二叉搜索树</option>
+  <option value="平衡二叉树">平衡二叉树</option>
+  <option value="红黑树">红黑树</option>
+  <option value="AVL树">AVL树</option>
+  <option value="B树">B树</option>
+  <option value="B+树">B+树</option>
+  <option value="图">图</option>
+  <option value="邻接表">邻接表</option>
+  <option value="邻接矩阵">邻接矩阵</option>
+  <option value="并查集">并查集</option>
+  <option value="字典树">字典树</option>
+  <option value="线段树">线段树</option>
+  <option value="树状数组">树状数组</option>
+  <option value="跳表">跳表</option>
+  <option value="字符串处理">字符串处理</option>
+  <option value="字符串匹配">字符串匹配</option>
+  <option value="KMP算法">KMP算法</option>
+  <option value="正则表达式">正则表达式</option>
+  <option value="字符串哈希">字符串哈希</option>
+  <option value="后缀数组">后缀数组</option>
+  <option value="后缀自动机">后缀自动机</option>
+  <option value="图论">图论</option>
+  <option value="最短路径算法">最短路径算法</option>
+  <option value="Dijkstra算法">Dijkstra算法</option>
+  <option value="Floyd-Warshall算法">Floyd-Warshall算法</option>
+  <option value="Bellman-Ford算法">Bellman-Ford算法</option>
+  <option value="最小生成树">最小生成树</option>
+  <option value="Prim算法">Prim算法</option>
+  <option value="Kruskal算法">Kruskal算法</option>
+  <option value="拓扑排序">拓扑排序</option>
+  <option value="强连通分量">强连通分量</option>
+  <option value="网络流">网络流</option>
+  <option value="最大流算法">最大流算法</option>
+  <option value="二分图匹配">二分图匹配</option>
+  <option value="数论算法">数论算法</option>
+  <option value="组合数学">组合数学</option>
+  <option value="概率算法">概率算法</option>
+  <option value="随机化算法">随机化算法</option>
+  <option value="近似算法">近似算法</option>
+  <option value="并行算法">并行算法</option>
+  <option value="分布式算法">分布式算法</option>
+  <option value="机器学习算法">机器学习算法</option>
+  <option value="深度学习算法">深度学习算法</option>
+  <option value="强化学习算法">强化学习算法</option>
+  <option value="其他">其他</option>
+  <option value="暴力算法">暴力算法</option>
+  <option value="双指针算法">双指针算法</option>
+  <option value="滑动窗口">滑动窗口</option>
+  <option value="前缀和">前缀和</option>
+  <option value="差分数组">差分数组</option>
+  <option value="位运算">位运算</option>
+  <option value="状态压缩">状态压缩</option>
+  <option value="几何算法">几何算法</option>
+  <option value="计算几何">计算几何</option>
+  <option value="高精度计算">高精度计算</option>
+</select>
+  <select v-model="queryParams.difficulty">
+    <option :value="null">难度</option>
+    <option value="简单">简单</option>
+    <option value="中等">中等</option>
+    <option value="困难">困难</option>
+  </select>
+  <select v-model="queryParams.desc">
+    <option :value="false">升序</option>
+    <option :value="true">降序</option>
+  </select>
+  <input
+    type="text"
+    placeholder="搜索题目"
+    v-model="queryParams.vague"
+  />
+  <button @click="handleSearch">搜索</button>
+</div>
 
         <table class="problem-table">
           <thead>
@@ -220,8 +266,7 @@ const queryParams = ref({
   probSkill: null,
   difficulty: null,
   desc: false,
-  orderBy: null,
-  vague: null
+  orderBy: null
 });
 
 Token.value = localStorage.getItem('token');
@@ -255,16 +300,16 @@ const nextPage = () => {
 
 // 获取题目数据
 const fetchProblems = async () => {
-  const response = await axios.get(
+    const response = await axios.post(
       `/api/getProblems/${pageSize.value}/${pageNum.value}`,
       {
         // 请求体中的参数
-        status: queryParams.value.status,
-        probSkill: queryParams.value.probSkill,
-        difficulty: queryParams.value.difficulty,
+        status: queryParams.value.status||null,
+        probSkill: queryParams.value.probSkill||null,
+        difficulty: queryParams.value.difficulty||null,
         desc: queryParams.value.desc,
-        orderBy: queryParams.value.orderBy,
-        vague: queryParams.value.vague
+        orderBy: queryParams.value.orderBy||null,
+        vague: queryParams.value.vague||null // 模糊查询参数
       },
       {
         headers: {
@@ -272,47 +317,14 @@ const fetchProblems = async () => {
         }
       }
     );
-    if(response.data.errCode === 1000){
-        problems.value = response.data.data.probList;
-        totalPages.value = Math.ceil(response.data.data.total / pageSize.value);
-    }
-    else{
-        if (response.data.errCode === 1001) {
-            alert('服务器内部错误');
-        }
-        if (response.data.errCode === 1002) {
-            alert('验证码错误');
-        }
-        if (response.data.errCode === 1003) {
-            alert('用户名或密码错误'); 
-        }
-        if(response.data.errCode === 1004){
-            alert('幂等性错误'); 
-        }
-        if(response.data.errCode === 1005){
-            alert('用户名已存在');
-        }
-        if(response.data.errCode === 1006){
-            alert('token过期'); 
-        }
-        if(response.data.errCode === 1007){
-            alert('邮箱验证码错误'); 
-        }
-        if(response.data.errCode === 1008){
-            alert('数据不符合规范'); 
-        }
-        if(response.data.errCode === 1009){
-            alert('邮箱已被使用'); 
-        }
-        if(response.data.errCode === 1010){
-            alert('手机号已被使用'); 
-        }
-        if(response.data.errCode === 1011){
-            alert('不存在的静态资源'); 
-        }
-    }
-}
 
+    if (response.data.errCode === 1000) {
+      problems.value = response.data.data.probList;
+      totalPages.value = Math.ceil(response.data.data.total / pageSize.value);
+    } else {
+      handleError(response.data.errCode);
+    }
+  } 
 // ===== 改进的日历部分 =====
 // 星期几的标签
 const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
