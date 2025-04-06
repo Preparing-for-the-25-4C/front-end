@@ -125,7 +125,41 @@ const fetchAllData = async () => {
           hasMore = false;
         }
       } else {
-        handleError(response.data.errCode);
+        if (response.data.errCode === 1001) {
+        alert('请先登录！');
+        router.push('/login'); // 跳转到登录页面
+      }
+      if (response.data.errCode === 1002) {
+        alert('验证码错误');
+      }
+      if (response.data.errCode === 1003) {
+        alert('用户名或密码错误'); 
+      }
+      if(response.data.errCode === 1004){
+        alert('幂等性错误'); 
+      }
+      if(response.data.errCode === 1005){
+        alert('用户名已存在');
+      }
+      if(response.data.errCode === 1006){
+        alert('请先登录！');
+        router.push('/login'); // 跳转到登录页面
+      }
+      if(response.data.errCode === 1007){
+        alert('邮箱验证码错误'); 
+      }
+      if(response.data.errCode === 1008){
+        alert('数据不符合规范'); 
+      }
+      if(response.data.errCode === 1009){
+        alert('邮箱已被使用'); 
+      }
+      if(response.data.errCode === 1010){
+        alert('手机号已被使用'); 
+      }
+      if(response.data.errCode === 1011){
+        alert('不存在的静态资源'); 
+      }
         hasMore = false;
       }
     }

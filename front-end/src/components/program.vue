@@ -310,7 +310,8 @@ const fetchProblemDetails = async () => {
             alert('用户名已存在');
         }
         if(response.data.errCode === 1006){
-            alert('token过期'); 
+            alert('请先登录！');
+            router.push('/login'); // 重定向到登录页面
         }
         if(response.data.errCode === 1007){
             alert('邮箱验证码错误'); 
@@ -344,10 +345,15 @@ const runCode = async () => {
   }
     // 调用 /api/runCode 接口
     const response = await axios.post('/api/runCode', {
-      sourceCode: code.value,
-      languageId: selectedLanguage.value,
-      stdIn: stdIn.value
-    });
+        sourceCode: code.value,
+        languageId: selectedLanguage.value,
+        stdIn: stdIn.value,
+      },
+      {
+        headers: {
+          'Token': Token.value, // 添加 Token 到请求头
+        },
+      });
 
     if (response.data.errCode === 1000) {
       const runToken = response.data.data; // 获取 runToken
@@ -392,7 +398,11 @@ const runCode = async () => {
 const fetchRunResult = async (runToken:any) => {
   try {
     // 调用 /api/getRunRes/{runToken} 接口
-    const response = await axios.get(`/api/getRunRes/${runToken}`);
+    const response = await axios.get(`/api/getRunRes/${runToken}`,{
+      headers: {
+        'Token': Token.value, // 添加 Token 到请求头
+      },
+    });
 
     if (response.data.errCode === 1000) {
       // 解码 Base64 编码的 stdOut

@@ -237,7 +237,8 @@ const fetchProcessRate = async () => {
         alert('用户名已存在');
       }
       if(response.data.errCode === 1006){
-        alert('token过期'); 
+        alert('请先登录！');
+        router.push('/login'); // 跳转到登录页面
       }
       if(response.data.errCode === 1007){
         alert('邮箱验证码错误'); 
