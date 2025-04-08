@@ -23,17 +23,23 @@
         <div class="sidebar-section">
           <h3 class="sidebar-title">提交记录</h3>
           <ul class="submission-list">
-            <li v-for="(submission, index) in submissionData" :key="index" 
-                class="submission-item" 
-                @click="showSubmissionDetails(index)">
-              <span :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"></span>
-              <div class="submission-meta">
-                <span class="problem-name">{{ submission.probName }}</span>
-                <span class="status">{{ submission.status }}</span>
-                <span class="time">{{ submission.recordTime }}</span>
-              </div>
-            </li>
-          </ul>
+            <li
+  v-for="(submission, index) in submissionData"
+  :key="index"
+  class="submission-item"
+  @click="showSubmissionDetails(index)"
+>
+  <span
+    :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"
+  ></span>
+  <div class="submission-meta">
+    <span class="problem-name">{{ submission.probName }}</span>
+    <span class="status">{{ submission.status }}</span>
+    <span class="time">{{ submission.recordTime }}</span>
+    <!-- 显示编译错误 -->
+  </div>
+</li>
+</ul>
           <div class="pagination">
             <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
             <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
@@ -56,17 +62,34 @@
 
         <!-- 提交详情覆盖层 -->
         <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
-          <span class="close-details" @click="closeSubmissionDetails">&times;</span>
-          <h2>提交详情</h2>
-          <div class="submission-info">
-            <p>状态: <span>{{ activeSubmission.status }}</span></p>
-            <p>语言: <span>{{ activeSubmission.language }}</span></p>
-            <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
-          </div>
-          <h3>提交的代码：</h3>
-          <pre>{{ activeSubmission.code }}</pre>
-        </div>
-      </div>
+  <span class="close-details" @click="closeSubmissionDetails">&times;</span>
+  <h2>提交详情</h2>
+  <div class="submission-info">
+    <p>状态: <span>{{ activeSubmission.status }}</span></p>
+    <p>语言: <span>{{ activeSubmission.language }}</span></p>
+    <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
+  </div>
+  <h3>提交的代码：</h3>
+  <pre>{{ activeSubmission.code }}</pre>
+  <!-- 显示编译错误 -->
+  <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
+  <span class="close-details" @click="closeSubmissionDetails">&times;</span>
+  <h2>提交详情</h2>
+  <div class="submission-info">
+    <p>状态: <span>{{ activeSubmission.status }}</span></p>
+    <p>语言: <span>{{ activeSubmission.language }}</span></p>
+    <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
+  </div>
+  <h3>提交的代码：</h3>
+  <pre>{{ activeSubmission.code }}</pre>
+  <!-- 显示编译错误 -->
+  <div v-if="activeSubmission.compileError" class="compile-error">
+    <h3>编译错误：</h3>
+    <pre>{{ activeSubmission.compileError }}</pre>
+  </div>
+</div>
+  </div>
+</div>
 
       <!-- 右侧代码编辑区域 -->
       <div class="code-panel">
@@ -116,6 +139,7 @@ interface SubmissionRecord {
   time: string;
   code: string;
   recordTime: string;
+  compileError?: string; // 新增字段，用于存储编译错误
 }
 
 const submissionData = reactive<SubmissionRecord[]>([]);
@@ -179,20 +203,44 @@ const handleSubmitCode = async () => {
     alert('代码不能为空');
     return;
   }
-  const response = await axios.post('/api/submit', {
-    sourceCode: code.value,
-    languageId: selectedLanguage.value,
-    probId: route.query.id
-  }, {
-    headers: { 'Token': Token.value }
-  });
-  if (response.data.errCode === 1000) {
-    const token = response.data.data;
-    startPolling(token);
-    currentPage.value = 1;  // 重置到第一页
-    fetchSubmissionRecords(1);
-  } else {
-    handleSubmitError(response.data.errCode);
+
+  try {
+    const response = await axios.post(
+      '/api/submit',
+      {
+        sourceCode: code.value,
+        languageId: selectedLanguage.value,
+        probId: route.query.id,
+      },
+      {
+        headers: { 'Token': Token.value },
+      }
+    );
+
+    if (response.data.errCode === 1000) {
+      const judgeToken = response.data.data;
+
+      // 设置 activeSubmission 数据
+      Object.assign(activeSubmission, {
+        status: '评测中',
+        language: languages.value.find((lang) => lang.id === selectedLanguage.value)?.name || '未知语言',
+        time: '--',
+        code: code.value,
+        recordTime: new Date().toLocaleString(),
+        compileError: '', // 清空编译错误
+      });
+
+      // 激活提交详情页面
+      isSubmissionDetailsActive.value = true;
+
+      // 开始轮询获取评测结果
+      startPolling(judgeToken);
+    } else {
+      handleSubmitError(response.data.errCode);
+    }
+  } catch (error) {
+    console.error('提交代码失败:', error);
+    alert('提交代码失败，请检查网络或服务器状态');
   }
 };
 
@@ -213,26 +261,48 @@ if (route.query.id) {
 });
 
 const pollingInterval = ref<ReturnType<typeof setInterval>>();
-const startPolling = (judgeToken: string) => {
+  const startPolling = (judgeToken: string) => {
   stopPolling(); // 先停止已有轮询
   pollingInterval.value = setInterval(async () => {
     try {
       const response = await axios.get(`/api/getSubmitRes/${judgeToken}`, {
-        headers: { 'Token': Token.value }
+        headers: { 'Token': Token.value },
       });
-      
+
       if (response.data.errCode === 1000) {
         const result = response.data.data;
-        if (result.judgeStatus !== 'Judging') { // 假设状态为Judging表示还在评测
-          stopPolling();
-          showResultPopup(result);
+
+        // 检查是否存在编译错误
+        if (result.judgeStatus === 'Compilation Error') {
+          const compileError = result.compileOutput?.trim() || '编译错误信息为空';
+
+          // 更新 activeSubmission 数据
+          Object.assign(activeSubmission, {
+            status: '编译错误',
+            compileError: compileError,
+          });
+
+          stopPolling(); // 停止轮询
+          return;
+        }
+
+        // 如果评测状态不是 "Judging"，更新 activeSubmission 数据
+        if (result.judgeStatus !== 'Judging') {
+          Object.assign(activeSubmission, {
+            status: result.judgeStatus,
+            time: `${result.time} ms`,
+            memory: `${result.memory} KB`,
+          });
+
+          stopPolling(); // 停止轮询
         }
       }
     } catch (error) {
       stopPolling();
-      alert('获取评测结果失败');
+      console.error('获取评测结果失败:', error);
+      alert('获取评测结果失败，请检查网络或服务器状态');
     }
-  }, 1000); // 每1秒轮询一次
+  }, 1000); // 每 1 秒轮询一次
 };
 
 const stopPolling = () => {
@@ -336,7 +406,8 @@ const activeSubmission = reactive({
   language: '',
   time: '',
   memory: '',
-  code: ''
+  code: '',
+  compileError: '' // Add compileError property
 });
 const runCode = async () => {
   if (!code.value.trim()) {
@@ -395,10 +466,13 @@ const runCode = async () => {
     }
 
 };
-const fetchRunResult = async (runToken:any) => {
-  try {
+const clearOutput = () => {
+  stdOut.value = ''; // 清空运行结果
+};
+
+const fetchRunResult = async (runToken: any) => {
     // 调用 /api/getRunRes/{runToken} 接口
-    const response = await axios.get(`/api/getRunRes/${runToken}`,{
+    const response = await axios.get(`/api/getRunRes/${runToken}`, {
       headers: {
         'Token': Token.value, // 添加 Token 到请求头
       },
@@ -406,48 +480,22 @@ const fetchRunResult = async (runToken:any) => {
 
     if (response.data.errCode === 1000) {
       // 解码 Base64 编码的 stdOut
-      const decodedOutput = atob(response.data.data.stdOut.trim());
-      stdOut.value = decodedOutput; // 设置运行结果
-    } else {
-      if (response.data.errCode === 1016) {
-        alert('代码正在运行中');
+      if (response.data.data.stdOut) {
+        const decodedOutput = atob(response.data.data.stdOut.trim());
+        stdOut.value = decodedOutput; // 设置运行结果
+      } else {
+        console.error('stdOut is null or undefined');
+        stdOut.value = '运行结果为空';
       }
-      if (response.data.errCode === 1001) {
-        alert('服务器内部错误');
-      }
-      if (response.data.errCode === 1002) {
-        alert('验证码错误');
-      }
-      if (response.data.errCode === 1003) {
-        alert('用户名或密码错误');
-      }
-      if (response.data.errCode === 1004) {
-        alert('幂等性错误');
-      }
-      if (response.data.errCode === 1005) {
-        alert('用户名已存在');
-      }
-      if (response.data.errCode === 1006) {
-        alert('token过期');
-      }
-      if (response.data.errCode === 1007) {
-        alert('邮箱验证码错误');
-      }
-      if (response.data.errCode === 1008) {
-        alert('数据不符合规范');
-      }
-      if (response.data.errCode === 1009) {
-        alert('邮箱已被使用');
-      }
+    } 
+    if (response.data.errCode === 1016) {
+      stdOut.value = '代码正在运行中，请稍后...';
     }
-  } catch (error) {
-    console.error('获取运行结果失败:', error);
-    alert('获取运行结果失败，请检查网络或服务器状态');
-  }
-};
-const clearOutput = () => {
-  stdIn.value = '';
-  stdOut.value = '';
+    if (response.data.data && response.data.data.compileOutput) {
+      // 如果存在编译错误，显示 compileOutput
+      const compileError = atob(response.data.data.compileOutput.trim());
+      stdOut.value = `编译错误:\n${compileError}`;
+    } 
 };
 
 function showSubmissionDetails(submissionId: number) {
@@ -882,5 +930,12 @@ body {
   height: 150px;
   overflow-y: auto;
   background: #f5f5f5;
+}
+.compile-error {
+  display: block;
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+  word-wrap: break-word; /* 长单词换行 */
 }
 </style>

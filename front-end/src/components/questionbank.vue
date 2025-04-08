@@ -5,17 +5,21 @@
     <!-- 左侧主要内容 -->
     <main>
       <!-- 推荐算法部分 -->
-      <section class="algorithm-section">
-        <div class="algorithm-title">
-          <h3>推荐算法</h3>
-          <span>></span>
-        </div>
-        <div class="algorithm-cards">
-          <div class="algorithm-card"></div>
-          <div class="algorithm-card"></div>
-          <div class="algorithm-card"></div>
-        </div>
-      </section>
+        <section class="algorithm-section">
+  <div class="algorithm-title">
+    <h3>推荐算法</h3>
+  </div>
+  <div class="algorithm-grid" :style="{ gridTemplateColumns: `repeat(${recommendedProblems.length}, 1fr)` }">
+    <div
+      v-for="(problem, index) in recommendedProblems"
+      :key="index"
+      class="algorithm-card"
+      @click="goToProblem(problem.id, problem.title)"
+    >
+      <p>{{ problem.title }}</p>
+    </div>
+  </div>
+</section>
 
       <!-- 题目列表部分 -->
       <section class="problem-section">
@@ -207,7 +211,7 @@ import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
-
+const recommendedProblems = ref([]); 
 const router = useRouter();
 const Token = ref();
 const processRate = ref(0);
@@ -257,10 +261,57 @@ const fetchProcessRate = async () => {
       }
     }
   } 
+  const fetchRecommendedProblems = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    // 未登录时显示假的推荐题目
+    recommendedProblems.value = [
+      { id: 1, title: '题目 1' },
+      { id: 2, title: '题目 2' },
+      { id: 3, title: '题目 3' },
+      { id: 4, title: '题目 4' },
+      { id: 5, title: '题目 5' },
+    ];
+    return;
+  }
 
+  try {
+    const response = await axios.get('/api/requestRecommend', {
+      headers: { Token: token },
+    });
+
+    if (response.data.errCode === 1000) {
+      recommendedProblems.value = response.data.data.probList.map((problem) => ({
+        id: problem.probId,
+        title: problem.probTitle,
+      }));
+    } else {
+      console.error('获取推荐题目失败:', response.data);
+    }
+  } catch (error) {
+    console.error('获取推荐题目失败:', error);
+  }
+};
 // 题目列表数据
 const problems = ref([]);
+const goToProblem = (id, title) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('请先登录！');
+    router.push('/login'); // 跳转到登录页面
+    return;
+  }
 
+  router.push({
+    path: '/program',
+    query: { id, title },
+  });
+};
+
+// 在组件挂载时获取推荐题目
+onMounted(() => {
+  fetchRecommendedProblems();
+});
 // 筛选相关数据
 const queryParams = ref({
   status: null,
@@ -465,14 +516,23 @@ body {
 }
 
 .algorithm-card {
-  height: 100px;
-  background: #f0f0f0;
-  border-radius: 4px;
+  height: 8rem;
+  background: linear-gradient(135deg, #cad9f0, #e2f2fa); /* 浅蓝色渐变背景 */
+  border-radius: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #414040; /* 白色字体 */
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .algorithm-card:hover {
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  transform: translateY(-5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* 题目列表区域 */
@@ -598,7 +658,17 @@ body {
   font-size: 0.875rem;
   font-weight: bold;
 }
+.algorithm-grid {
+  display: grid;
+  gap: 1rem;
+  justify-content: center; /* 居中对齐 */
+}
 
+
+.algorithm-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
 .calendar-day {
   padding: 0.5rem;
   font-size: 0.875rem;

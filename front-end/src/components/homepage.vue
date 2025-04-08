@@ -2,6 +2,30 @@
   <br>
   <br>
   <main>
+    <div class="modal-overlay" :style="{ display: showInterestModal ? 'block' : 'none' }"></div>
+<div class="interest-modal" :style="{ display: showInterestModal ? 'block' : 'none' }">
+  <div class="modal-header">
+    <h2 class="modal-title">选择您感兴趣的算法标签</h2>
+  </div>
+  <div class="modal-content">
+    <div class="interest-tags">
+      <div 
+        v-for="(tag, index) in allTags" 
+        :key="index" 
+        class="interest-tag" 
+        :class="{ selected: selectedInterests.includes(tag) }"
+        @click="toggleInterest(tag)"
+      >
+        {{ tag }}
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="skip-btn" @click="skipInterestSelection">跳过</button>
+      <button class="submit-btn" @click="submitInterests">提交</button>
+    </div>
+  </div>
+</div>
+
     <section class="section">
       <h2 class="section-title">
         <span>📚</span>
@@ -27,12 +51,21 @@
     </section>
     <br>
     <br>
-    <section class="section">
-      <h2 class="section-title">推荐算法</h2>
-      <div class="algorithm-grid">
-        <div class="algorithm-card" v-for="i in 3" :key="i"></div>
-      </div>
-    </section>
+    <section class="algorithm-section">
+  <div class="algorithm-title">
+    <h3>推荐算法</h3>
+  </div>
+  <div class="algorithm-grid" :style="{ gridTemplateColumns: `repeat(${recommendedProblems.length}, 1fr)` }">
+    <div
+      v-for="(problem, index) in recommendedProblems"
+      :key="index"
+      class="algorithm-card"
+      @click="goToProblem(problem.id, problem.title)"
+    >
+      <p>{{ problem.title }}</p>
+    </div>
+  </div>
+</section>
     <br>
     <br>
     <section class="section">
@@ -111,6 +144,193 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
+const router = useRouter()
+const showInterestModal = ref(false)
+const selectedInterests = ref([])
+const hasCheckedInterest = ref(false)
+const allTags = ref([
+  '排序算法', '查找算法', '递归', '分治算法', '贪心算法', '动态规划',
+  '回溯算法', '枚举算法', '模拟算法', '数组', '链表', '栈', '队列',
+  '哈希表', '堆', '树', '二叉树', '二叉搜索树', '平衡二叉树', '红黑树',
+  'AVL树', 'B树', 'B+树', '图', '邻接表', '邻接矩阵', '并查集', '字典树',
+  '线段树', '树状数组', '跳表', '字符串处理', '字符串匹配', 'KMP算法',
+  '正则表达式', '字符串哈希', '后缀数组', '后缀自动机', '图论', '最短路径算法',
+  'Dijkstra算法', 'Floyd-Warshall算法', 'Bellman-Ford算法', '最小生成树',
+  'Prim算法', 'Kruskal算法', '拓扑排序', '强连通分量', '网络流', '最大流算法',
+  '二分图匹配', '数论算法', '组合数学', '概率算法', '随机化算法', '近似算法',
+  '并行算法', '分布式算法', '机器学习算法', '深度学习算法', '强化学习算法',
+  '其他', '暴力算法', '双指针算法', '滑动窗口', '前缀和', '差分数组',
+  '位运算', '状态压缩', '几何算法', '计算几何', '高精度计算'
+]);
+const recommendedProblems = ref([]); // 存储推荐的题目
+const goToProblem = (id, title) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('请先登录！');
+    router.push('/login'); // 跳转到登录页面
+    return;
+  }
+
+  router.push({
+    path: '/program',
+    query: { id, title },
+  });
+};
+const fetchRecommendedProblems = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    // 未登录时显示假的推荐题目
+    recommendedProblems.value = [
+      { id: 1, title: '题目 1' },
+      { id: 2, title: '题目 2' },
+      { id: 3, title: '题目 3' },
+      { id: 4, title: '题目 4' },
+      { id: 5, title: '题目 5' },
+    ];
+    return;
+  }
+
+  try {
+    const response = await axios.get('/api/requestRecommend', {
+      headers: { Token: token },
+    });
+
+    if (response.data.errCode === 1000) {
+      recommendedProblems.value = response.data.data.probList.map((problem) => ({
+        id: problem.probId,
+        title: problem.probTitle,
+      }));
+    } else {
+      if (response.data.errCode === 1001) {
+            alert('服务器内部错误');
+        }
+        if (response.data.errCode === 1002) {
+            alert('验证码错误');
+        }
+        if (response.data.errCode === 1003) {
+            alert('用户名或密码错误'); 
+        }
+        if(response.data.errCode === 1004){
+            alert('幂等性错误'); 
+        }
+        if(response.data.errCode === 1005){
+            alert('用户名已存在');
+        }
+        if(response.data.errCode === 1006){
+            alert('请先登录！');
+            router.push('/login'); // 重定向到登录页面
+        }
+        if(response.data.errCode === 1007){
+            alert('邮箱验证码错误'); 
+        }
+        if(response.data.errCode === 1008){
+            alert('数据不符合规范'); 
+        }
+        if(response.data.errCode === 1009){
+            alert('邮箱已被使用'); 
+        }
+        if(response.data.errCode === 1010){
+            alert('手机号已被使用'); 
+        }
+        if(response.data.errCode === 1011){
+            alert('不存在的静态资源'); 
+        }
+    }
+  } catch (error) {
+    console.error('获取推荐题目失败:', error);
+  }
+};
+onMounted(() => {
+  fetchRecommendedProblems();
+});
+// 在组件挂载时获取推荐题目
+onMounted(() => {
+  fetchRecommendedProblems();
+});
+const checkUserInterest = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return // 未登录用户不处理
+  try {
+    const response = await axios.get(`/api/isInterest/${token}`)
+    if (response.data.errCode === 1017) {
+      // 用户未设置兴趣标签，显示选择框
+      showInterestModal.value = true;
+    }
+  } catch (error) {
+    console.error('检查兴趣标签失败:', error)
+  } finally {
+    hasCheckedInterest.value = true
+  }
+}
+const submitInterests = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+  
+  try {
+    const interests = selectedInterests.value.join(';')
+    const response = await axios.post(
+      `/api/submitInterest?interest=${encodeURIComponent(interests)}`, // 将兴趣标签作为 Query 参数
+      null, // POST 请求体为空
+      { headers: { Token: token } } // 将 Token 放入请求头
+    );
+
+    if (response.data.errCode === 1000) {
+      alert('兴趣标签提交成功！');
+      showInterestModal.value = false; // 关闭弹窗
+    } else {
+      if (response.data.errCode === 1001) {
+            alert('服务器内部错误');
+        }
+        if (response.data.errCode === 1002) {
+            alert('验证码错误');
+        }
+        if (response.data.errCode === 1003) {
+            alert('用户名或密码错误'); 
+        }
+        if(response.data.errCode === 1004){
+            alert('幂等性错误'); 
+        }
+        if(response.data.errCode === 1005){
+            alert('用户名已存在');
+        }
+        if(response.data.errCode === 1006){
+            alert('token过期'); 
+        }
+        if(response.data.errCode === 1007){
+            alert('邮箱验证码错误'); 
+        }
+        if(response.data.errCode === 1008){
+            alert('数据不符合规范'); 
+        }
+        if(response.data.errCode === 1009){
+            alert('邮箱已被使用'); 
+        }
+        if(response.data.errCode === 1010){
+            alert('手机号已被使用'); 
+        }
+        if(response.data.errCode === 1011){
+            alert('不存在的静态资源'); 
+        }
+    }
+  } catch (error) {
+    console.error('提交兴趣标签失败:', error);
+    alert('提交失败，请检查网络或服务器状态！');
+  }
+}
+const skipInterestSelection = () => {
+  showInterestModal.value = false
+}
+
+// 切换选择兴趣标签
+const toggleInterest = (tag) => {
+  const index = selectedInterests.value.indexOf(tag)
+  if (index === -1) {
+    selectedInterests.value.push(tag)
+  } else {
+    selectedInterests.value.splice(index, 1)
+  }
+}
 
 const props = defineProps({
   probList: {
@@ -252,7 +472,7 @@ const fetchProblems = async () => {
     for (let i = 0; i < problemSets.value.length; i += batchSize) {
       const batch = problemSets.value.slice(i, i + batchSize).map((problemSet) =>
         axios.post(
-          `/api/getProblems/1000/1`,
+          `/api/getProblems/540/1`,
           { probSkill: problemSet.title.trim().toLowerCase() },
           { headers: { Token: Token } }
         )
@@ -309,6 +529,7 @@ function closeModal() {
 
 // 组件挂载时获取问题
 onMounted(() => {
+  checkUserInterest()
   fetchProblems();
 });
 
@@ -449,6 +670,14 @@ main {
   width: 78%;
   margin: auto;
 }
+.algorithm-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  padding-left: 9rem; /* 添加与题单对齐的左边距 */
+}
 
 .section-title {
   display: flex;
@@ -457,8 +686,8 @@ main {
   font-size: 1.25rem;
   font-weight: bold;
   margin-bottom: 1rem;
+  padding-left: 0.5rem; /* 确保题单标题也有相同的左边距 */
 }
-
 /* 知识卡片样式 */
 .knowledge-cards {
   display: grid;
@@ -489,6 +718,73 @@ main {
 .knowledge-icon {
   font-size: 2rem;
 }
+.interest-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.interest-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.interest-tag {
+  padding: 0.5rem 1rem;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.interest-tag:hover {
+  background-color: #e0e0e0;
+}
+
+.interest-tag.selected {
+  background-color: #1890ff;
+  color: white;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.skip-btn {
+  padding: 0.5rem 1rem;
+  background: #f5f5f5;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-btn {
+  padding: 0.5rem 1rem;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  background: #40a9ff;
+}
 
 .knowledge-info h3 {
   margin-bottom: 0.5rem;
@@ -503,14 +799,38 @@ main {
 /* 算法网格样式 */
 .algorithm-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 自动适应列宽 */
   gap: 1rem;
+  width: 100%; /* 设置宽度为100% */
+  max-width: 78%; /* 与题单的宽度一致 */
+  margin: auto; /* 居中对齐 */
 }
 
 .algorithm-card {
   height: 8rem;
-  background-color: #e2e2e2;
+  background: linear-gradient(135deg, #cad9f0, #e2f2fa); /* 浅蓝色渐变背景 */
   border-radius: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #414040; /* 白色字体 */
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.algorithm-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.algorithm-card.placeholder {
+  background: linear-gradient(135deg, #d4fc79, #96e6a1); /* 更柔和的浅绿色渐变背景 */
+  border-radius: 0.5rem;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* 问题网格样式 */
@@ -606,9 +926,7 @@ main {
 }
 
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  text-align: center;
   margin-bottom: 1rem;
 }
 
