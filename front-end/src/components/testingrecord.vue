@@ -72,6 +72,12 @@
       <button @click="nextPage" :disabled="currentPage >= totalPages" class="pagination-button">下一页</button>
     </div>
   </div>
+  <footer class="footer">
+  <div class="footer-content">
+    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <p>备案号：鲁ICP备2024065791号</p>
+  </div>
+</footer>
 </template>
 
 <script setup>
@@ -248,6 +254,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.footer {
+  background-color: #f5f5f5;
+  padding: 1rem 0;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
+}
 .submission-container {
   padding: 40px;
   background-color: #f5f5f5;
@@ -328,9 +362,9 @@ onMounted(() => {
 }
 
 .filter-button.primary {
-  background: #1890ff;
+  background: #9597be;
   color: white;
-  border-color: #1890ff;
+  border-color: #9597be;
   width: 70px;
 }
 

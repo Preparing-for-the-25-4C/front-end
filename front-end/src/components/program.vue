@@ -1,10 +1,11 @@
 <template>
   <br>
   <br>
+  <br>
   <div class="container">
     <div class="header">
       <div class="breadcrumb">
-        <span class="folder-icon">📁</span>
+        <span class="folder-icon">📝 </span>
         <span>题库</span>
       </div>
       <div class="actions">
@@ -93,37 +94,53 @@
 
       <!-- 右侧代码编辑区域 -->
       <div class="code-panel">
-        <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
-        <div class="output-panel">
-  <div class="panel-content">
-    <div class="input-output-container">
-      <!-- 左侧输入框 -->
-      <div class="input-section">
-        <h3>输入数据</h3>
-        <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
-      </div>
-      <!-- 右侧运行结果 -->
-      <div class="output-section">
-        <h3>运行结果</h3>
-        <pre class="output-box">{{ stdOut }}</pre>
-      </div>
+    <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
+    
+    <!-- 添加控制按钮 -->
+    <div class="io-control">
+      <button @click="toggleIO" class="btn-toggle">
+        {{ showInputOutput ? '隐藏输入输出' : '显示输入输出' }}
+        <i :class="['arrow', showInputOutput ? 'down' : 'up']"></i>
+      </button>
     </div>
-    <div class="panel-actions">
-      <button class="btn" @click="clearOutput">清空</button>
+
+    <!-- 包裹输入输出容器 -->
+    <div class="output-panel" v-show="showInputOutput">
+      <div class="panel-content">
+        <div class="input-output-container">
+          <!-- 原有输入输出内容 -->
+          <div class="input-section">
+            <h3>输入数据</h3>
+            <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
+          </div>
+          <div class="output-section">
+            <h3>运行结果</h3>
+            <pre class="output-box">{{ stdOut }}</pre>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn" @click="clearOutput">清空</button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-      </div>
     </main>
   </div>
 </template>
+
+
 <script lang="ts" setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import router from '@/router';
+const showInputOutput = ref(true);
 
+// 添加切换方法
+const toggleIO = () => {
+  showInputOutput.value = !showInputOutput.value;
+};
 const selectedStatus = ref('');
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -414,24 +431,36 @@ const runCode = async () => {
     alert('代码不能为空');
     return;
   }
-    // 调用 /api/runCode 接口
-    const response = await axios.post('/api/runCode', {
-        sourceCode: code.value,
-        languageId: selectedLanguage.value,
-        stdIn: stdIn.value,
-      },
-      {
-        headers: {
-          'Token': Token.value, // 添加 Token 到请求头
-        },
-      });
 
-    if (response.data.errCode === 1000) {
-      const runToken = response.data.data; // 获取 runToken
-      await fetchRunResult(runToken); // 获取运行结果
-    } else {
-      if (response.data.errCode === 1001) {
-            alert('服务器内部错误');
+  let retryCount = 0; // 当前重试次数
+  const maxRetries = 5; // 最大重试次数
+  const retryDelay = 1000; // 每次重试的间隔时间（毫秒）
+
+  while (retryCount < maxRetries) {
+    try {
+      // 调用 /api/runCode 接口
+      const response = await axios.post(
+        '/api/runCode',
+        {
+          sourceCode: code.value,
+          languageId: selectedLanguage.value,
+          stdIn: stdIn.value,
+        },
+        {
+          headers: {
+            'Token': Token.value, // 添加 Token 到请求头
+          },
+        }
+      );
+
+      if (response.data.errCode === 1000) {
+        const runToken = response.data.data; // 获取 runToken
+        await fetchRunResult(runToken); // 获取运行结果
+        return; // 成功获取 runToken 后退出循环
+      } else {
+        if (response.data.errCode === 1001) {
+            alert('内部服务器错误，请稍后重试！');
+            router.push('/login'); // 重定向到登录页面
         }
         if (response.data.errCode === 1002) {
             alert('验证码错误');
@@ -446,7 +475,8 @@ const runCode = async () => {
             alert('用户名已存在');
         }
         if(response.data.errCode === 1006){
-            alert('token过期'); 
+            alert('请先登录！');
+            router.push('/login'); // 重定向到登录页面
         }
         if(response.data.errCode === 1007){
             alert('邮箱验证码错误'); 
@@ -463,8 +493,20 @@ const runCode = async () => {
         if(response.data.errCode === 1011){
             alert('不存在的静态资源'); 
         }
+        return; // 如果接口返回错误码，直接退出
+      }
+    } catch (error) {
+      console.error('获取 runToken 失败:', error);
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`重试第 ${retryCount} 次...`);
+        await new Promise((resolve) => setTimeout(resolve, retryDelay)); // 等待一段时间后重试
+      } else {
+        alert('获取 runToken 失败，请稍后重试');
+        return;
+      }
     }
-
+  }
 };
 const clearOutput = () => {
   stdOut.value = ''; // 清空运行结果
@@ -552,6 +594,60 @@ body {
   font-size: 14px;
   background: white;
   cursor: pointer;
+}
+/* 添加控制按钮样式 */
+.btn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 12px 0;
+}
+
+.btn-toggle:hover {
+  background: #e0e0e0;
+}
+.arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+.arrow.down {
+  border-top: 5px solid #666;
+}
+
+.arrow.up {
+  border-bottom: 5px solid #666;
+}
+
+/* 调整输入输出容器动画 */
+.output-panel {
+  transition: all 0.3s ease;
+}
+.code-panel:has(.output-panel:not([style*="display: none"])) {
+  padding-bottom: 24px;
+}
+
+/* 保持原有输入输出样式 */
+.input-output-container {
+  /* 保持之前修改的样式 */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.input-box, .output-box {
+  /* 保持之前的高度和样式 */
+  height: 200px;
 }
 .container {
   max-width: 1600px;
@@ -652,13 +748,13 @@ body {
 }
 
 .btn-primary {
-  background-color: #1890ff;
+  background-color: #add1f3;
   color: white;
-  border-color: #1890ff;
+  border-color: #add1f3;
 }
 
 .btn-primary:hover {
-  background-color: #40a9ff;
+  background-color: #add1f3;
 }
 
 .btn:hover {
@@ -937,5 +1033,88 @@ body {
   font-size: 12px;
   margin-top: 4px;
   word-wrap: break-word; /* 长单词换行 */
+}
+/* 输入输出容器 */
+.input-output-container {
+  display: flex;
+  gap: 16px;
+  align-items: stretch; /* 强制等高 */
+  margin-top: 16px;
+}
+
+/* 标题统一样式 */
+.input-section h3,
+.output-section h3 {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 输入输出区域基础样式 */
+.input-section,
+.output-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* 防止内容溢出 */
+}
+
+/* 统一输入输出框样式 */
+.input-box,
+.output-box {
+  flex: 1;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  tab-size: 2;
+  
+  /* 统一滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: #ddd #f5f5f5;
+}
+
+/* 针对 textarea 的特殊处理 */
+.input-box {
+  resize: vertical;
+  min-height: 200px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-box:focus {
+  border-color: #1890ff;
+}
+
+/* 输出框高度同步 */
+.output-box {
+  min-height: 200px;
+  background: #fafafa;
+}
+
+/* 统一滚动条样式 */
+.input-box::-webkit-scrollbar,
+.output-box::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.input-box::-webkit-scrollbar-track,
+.output-box::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.input-box::-webkit-scrollbar-thumb,
+.output-box::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 3px;
 }
 </style>

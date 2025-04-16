@@ -26,50 +26,40 @@
   </div>
 </div>
 
-    <section class="section">
-      <h2 class="section-title">
-        <span>📚</span>
-        知识图谱
-      </h2>
-      <div class="knowledge-cards">
-        <div 
-          v-for="(tag, index) in filteredKnowledgeTags" 
-          :key="index" 
-          class="knowledge-card" 
-          :style="tag.style"
-          @click="openModal(problemSets.find(set => set.title === tag.text))"
-        >
-          <div class="knowledge-content">
-            <div class="knowledge-icon">{{ tag.icon }}</div>
-            <div class="knowledge-info">
-              <h3>{{ tag.text }}</h3>
-              <p>{{ getProblemCount(tag.text) }}题</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+<section class="knowledge-graph-section">
+  <div class="knowledge-graph-container">
+    <h3 class="section-title">知识图谱</h3>
+    <div class="knowledge-graph">
+      <!-- 嵌入知识图谱 -->
+      <iframe 
+        src="/industrial-revolution-kg.html" 
+        class="knowledge-graph-iframe"
+        frameborder="0"
+      ></iframe>
+    </div>
+  </div>
+</section>
     <br>
     <br>
     <section class="algorithm-section">
-  <div class="algorithm-title">
-    <h3>推荐算法</h3>
-  </div>
-  <div class="algorithm-grid" :style="{ gridTemplateColumns: `repeat(${recommendedProblems.length}, 1fr)` }">
-    <div
-      v-for="(problem, index) in recommendedProblems"
-      :key="index"
-      class="algorithm-card"
-      @click="goToProblem(problem.id, problem.title)"
-    >
-      <p>{{ problem.title }}</p>
+  <div class="section-container">
+    <h3 class="section-title">推荐算法</h3>
+    <div class="algorithm-grid">
+      <div
+        v-for="(problem, index) in recommendedProblems"
+        :key="index"
+        class="algorithm-card"
+        @click="goToProblem(problem.id, problem.title)"
+      >
+        <p>{{ problem.title }}</p>
+      </div>
     </div>
   </div>
 </section>
     <br>
     <br>
     <section class="section">
-      <h2 class="section-title">题单</h2>
+      <h3 class="section-title">题单</h3>
       <div class="problem-grid" id="problemGrid">
   <div
     v-for="(problemSet, index) in paginatedProblemSets"
@@ -138,6 +128,12 @@
   </table>
 </div>
 </div>
+<footer class="footer">
+  <div class="footer-content">
+    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <p>备案号：鲁ICP备2024065791号</p>
+  </div>
+</footer>
 </template>
 
 <script setup>
@@ -149,6 +145,23 @@ const router = useRouter()
 const showInterestModal = ref(false)
 const selectedInterests = ref([])
 const hasCheckedInterest = ref(false)
+const colors = [
+  '#FFCDD2', '#F8BBD0', '#E1BEE7', '#D1C4E9', '#C5CAE9', '#BBDEFB',
+  '#B3E5FC', '#B2EBF2', '#B2DFDB', '#C8E6C9', '#DCEDC8', '#F0F4C3',
+  '#FFF9C4', '#FFECB3', '#FFE0B2', '#FFCCBC', '#D7CCC8', '#CFD8DC'
+];
+
+const getNodeColor = (index) => {
+  return colors[index % colors.length]; // 循环使用颜色数组
+};
+const showKnowledgeDetails = (node) => {
+  const matchingSet = problemSets.value.find(set => set.title === node);
+  if (matchingSet) {
+    openModal(matchingSet); // 调用现有的 `openModal` 方法显示题目列表
+  } else {
+    alert('该知识点暂无题目');
+  }
+};
 const allTags = ref([
   '排序算法', '查找算法', '递归', '分治算法', '贪心算法', '动态规划',
   '回溯算法', '枚举算法', '模拟算法', '数组', '链表', '栈', '队列',
@@ -331,7 +344,6 @@ const toggleInterest = (tag) => {
     selectedInterests.value.splice(index, 1)
   }
 }
-
 const props = defineProps({
   probList: {
     type: Array,
@@ -648,6 +660,47 @@ const getProblemSetClass = (title) => {
 </script>
 
 <style scoped>
+.knowledge-graph-section {
+  width: 78%; /* 与题单部分的宽度一致 */
+  margin: auto; /* 居中对齐 */
+  margin-bottom: 2rem;
+}
+.footer {
+  background-color: #f5f5f5;
+  padding: 1rem 0;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+.knowledge-graph-iframe {
+  width: 100%; /* 占满父容器宽度 */
+  height: 250px; /* 设置高度 */
+  border: none; /* 去掉边框 */
+  border-radius: 8px; /* 添加圆角 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+}
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.algorithm-section .section-title {
+  margin-left: 8.5rem; /* 向右移动 2rem */
+}
+.footer-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
+}
 * {
   margin: 0;
   padding: 0;
@@ -670,24 +723,15 @@ main {
   width: 78%;
   margin: auto;
 }
-.algorithm-title {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  padding-left: 9rem; /* 添加与题单对齐的左边距 */
-}
 
 .section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   font-size: 1.25rem;
   font-weight: bold;
   margin-bottom: 1rem;
-  padding-left: 0.5rem; /* 确保题单标题也有相同的左边距 */
+  text-align: left; /* 左对齐标题 */
 }
+
+
 /* 知识卡片样式 */
 .knowledge-cards {
   display: grid;
@@ -718,73 +762,6 @@ main {
 .knowledge-icon {
   font-size: 2rem;
 }
-.interest-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1001;
-  width: 80%;
-  max-width: 800px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.interest-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-bottom: 1.5rem;
-}
-
-.interest-tag {
-  padding: 0.5rem 1rem;
-  background-color: #f5f5f5;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.interest-tag:hover {
-  background-color: #e0e0e0;
-}
-
-.interest-tag.selected {
-  background-color: #1890ff;
-  color: white;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.skip-btn {
-  padding: 0.5rem 1rem;
-  background: #f5f5f5;
-  color: #333;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.submit-btn {
-  padding: 0.5rem 1rem;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.submit-btn:hover {
-  background: #40a9ff;
-}
 
 .knowledge-info h3 {
   margin-bottom: 0.5rem;
@@ -805,25 +782,25 @@ main {
   max-width: 78%; /* 与题单的宽度一致 */
   margin: auto; /* 居中对齐 */
 }
-
 .algorithm-card {
-  height: 8rem;
-  background: linear-gradient(135deg, #cad9f0, #e2f2fa); /* 浅蓝色渐变背景 */
-  border-radius: 0.5rem;
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
   font-size: 1rem;
   font-weight: bold;
-  color: #414040; /* 白色字体 */
+  color: #616060; /* 字体颜色 */
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  background: linear-gradient(90deg, #dde7f3, #ffffff); /* 从浅蓝到白色的渐变背景 */
+  border-radius: 8px; /* 圆角 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+  padding: 1rem; /* 内边距 */
 }
 
 .algorithm-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px); /* 鼠标悬停时上移 */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 鼠标悬停时阴影加深 */
 }
 
 .algorithm-card.placeholder {
@@ -840,6 +817,11 @@ main {
   gap: 1rem;
 }
 
+/* 确保推荐算法和题单的卡片左右对齐 */
+.knowledge-graph-section .knowledge-graph,
+.algorithm-section .algorithm-grid {
+  width: 100%; /* 确保内容宽度一致 */
+}
 .problem-card {
   background: white;
   padding: 1rem;
@@ -875,29 +857,61 @@ main {
   color: #666;
 }
 
-/* 分页样式 */
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid #eee;
 }
 
 .pagination button {
+  padding: 4px 8px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  background: #e6f7ff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.pagination button:disabled {
+  border-color: #ddd;
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 12px;
+  color: #666;
+}
+
+.pagination-button {
   padding: 0.5rem 1rem;
   background: #1890ff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
-.pagination button:disabled {
+.pagination-button:hover:not(:disabled) {
+  background: #40a9ff;
+}
+
+.pagination-button:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
+.pagination-info {
+  font-size: 1rem;
+  color: #666;
+}
 /* 模态框样式 */
 .modal-overlay {
   position: fixed;
@@ -926,7 +940,9 @@ main {
 }
 
 .modal-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
 }
 
@@ -971,17 +987,19 @@ main {
 
 .modal-table .submit-btn {
   padding: 0.25rem 0.75rem;
-  background: #52c41a;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  color: rgb(59, 59, 59); /* 设置字体颜色为黑色 */
+  background: none; /* 去掉背景色 */
+  border: none; /* 去掉边框 */
   cursor: pointer;
   text-decoration: none;
-  display: inline-block;
+  font-weight: bold; /* 加粗字体 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+  transition: transform 0.2s ease; /* 添加点击时的缩放效果 */
 }
 
 .modal-table .submit-btn:hover {
-  background: #3d9412;
+  transform: scale(1.05); /* 鼠标悬停时放大 */
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3); /* 鼠标悬停时加深文字阴影 */
 }
 
 /* 响应式设计 */

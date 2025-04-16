@@ -14,8 +14,8 @@
             <input type="text" placeholder="2至10位，建议大小写字母、数字" v-model="username" :class="{'is-invalid': isInvalid}">
             <p v-if="isInvalid" class="warning">用户名长度应在2 - 10个字符之间</p>
             <p v-if="usernameMessage" :class="{'success': usernameMessage === '用户名可用', 'warning': usernameMessage !== '用户名可用'}">
-    {{ usernameMessage }}
-  </p>
+              {{ usernameMessage }}
+            </p>
           </div>
           <div class="form-group">
             <label>密码</label>
@@ -37,35 +37,41 @@
           <div class="form-group">
             <div class="captcha-group">
               <input type="email" placeholder="邮箱" v-model="email" id="email" required>
-              <button type="button" @click="postEmail" class="send-code">发送验证码</button>
+              <button 
+                type="button" 
+                @click="postEmail" 
+                class="send-code"
+                :disabled="isSendingCode"
+              >
+                {{ isSendingCode ? `重新发送(${cooldown})` : '发送验证码' }}
+              </button>
             </div>
             <p v-if="isInvalid3" class="warning">{{ isInvalid3 }}</p>
           </div>
           <div class="form-group">
             <input v-model="verificationCode" type="text" id="verificationCode" required placeholder="请输入邮箱验证码">
           </div>
-          <!-- 添加选择头像的输入框和预览区域 -->
-          <div class="form-group">
+          <!--<div class="form-group">
             <label>选择头像</label>
             <input type="file" @change="handleAvatarChange">
             <img v-if="selectedAvatar" :src="selectedAvatar" alt="选择的头像" class="preview-avatar">
           </div>
           <div class="form-group">
-          <label>性别</label>
-          <select v-model="userSex">
-          <option value="0">女</option>
-          <option value="1">男</option>
-          <option value="2">未知</option>
-          </select>
+            <label>性别</label>
+            <select v-model="userSex">
+              <option value="0">女</option>
+              <option value="1">男</option>
+              <option value="2">未知</option>
+            </select>
           </div>
           <div class="form-group">
-          <label>手机号</label>
-          <input type="text" placeholder="请输入手机号" v-model="userPhone">
+            <label>手机号</label>
+            <input type="text" placeholder="请输入手机号" v-model="userPhone">
           </div>
           <div class="form-group">
-          <label>学校</label>
-          <input type="text" placeholder="请输入学校名称" v-model="userSchool">
-          </div>
+            <label>学校</label>
+            <input type="text" placeholder="请输入学校名称" v-model="userSchool">
+          </div>-->
           <div>
             <button type="submit" class="register-btn">注册</button>
             <p v-if="Message2" class="warning">{{ Message2 }}</p>
@@ -85,7 +91,7 @@ import axios from 'axios';
 import router from '@/router';
 import { RouterLink } from 'vue-router';
 
-const userSex = ref('2'); // 默认值为 "未知"
+const userSex = ref('2');
 const userPhone = ref('');
 const userSchool = ref('');
 const password = ref('');
@@ -101,42 +107,65 @@ const isInvalid3 = ref('');
 const emailVerifyKey = ref('');
 const captchaInput = ref('');
 const Message2 = ref('');
-// 新增：存储选择的头像文件
 const selectedAvatarFile = ref(null);
-// 新增：存储头像的预览 URL
 const selectedAvatar = ref('');
 const username = ref('');
-const usernameMessage = ref(''); 
+const usernameMessage = ref('');
+const cooldown = ref(0);
+const isSendingCode = ref(false);
+
+const startCooldown = () => {
+  cooldown.value = 60;
+  isSendingCode.value = true;
+  const timer = setInterval(() => {
+    cooldown.value--;
+    if (cooldown.value <= 0) {
+      clearInterval(timer);
+      isSendingCode.value = false;
+    }
+  }, 1000);
+};
+
 const postEmail = async () => {
+  if (isSendingCode.value) return;
+  
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email.value)) {
     isInvalid3.value = '请输入有效的邮箱地址';
     return;
   }
-  const response = await axios.get(`/api/getEmailCode/${email.value}`);
-  if (response.data.errCode === 1000) {
-    isInvalid3.value = '验证邮件已发送，请查看您的邮箱。';
-    emailVerifyKey.value = response.data.data.emailVerifyKey;
-  } else {
-    if (response.data.errCode === 1009) {
-      isInvalid3.value = '邮箱已被使用';
+  
+  try {
+    isInvalid3.value = '';
+    const response = await axios.get(`/api/getEmailCode/${email.value}`);
+    if (response.data.errCode === 1000) {
+      emailVerifyKey.value = response.data.data.emailVerifyKey;
+      startCooldown();
+    } else {
+      if (response.data.errCode === 1009) {
+        isInvalid3.value = '邮箱已被使用';
+      } else if (response.data.errCode === 1001) {
+        isInvalid3.value = '服务器内部错误';
+      } else if (response.data.errCode === 1004) {
+        isInvalid3.value = '操作太频繁，请稍后再试';
+      }
     }
-    if (response.data.errCode === 1001) {
-      isInvalid3.value = '服务器内部错误';
-    }
-    if (response.data.errCode === 1004) {
-      alert('用户操作太频繁，请稍后再试');
-    }
+  } catch (error) {
+    isInvalid3.value = '发送验证码失败，请重试';
+    console.error('Error sending verification code:', error);
   }
 };
 
 const refreshCaptcha = async () => {
-  const response = await axios.get('/api/getCaptcha');
-  captchaImage.value = 'data:image/png;base64,' + response.data.data.imgOnBase64;
-  captchaToken.value = response.data.data.captchaToken;
+  try {
+    const response = await axios.get('/api/getCaptcha');
+    captchaImage.value = 'data:image/png;base64,' + response.data.data.imgOnBase64;
+    captchaToken.value = response.data.data.captchaToken;
+  } catch (error) {
+    console.error('Error refreshing captcha:', error);
+  }
 };
 
-// 新增：处理头像选择事件
 const handleAvatarChange = (e) => {
   const file = e.target.files[0];
   if (file) {
@@ -149,21 +178,10 @@ const handleAvatarChange = (e) => {
   }
 };
 
-onMounted(() => {
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach((tab) => {
-    tab.addEventListener('click', () => {
-      document.querySelector('.tab.active').classList.remove('active');
-      tab.classList.add('active');
-    });
-  });
-});
-
 watch(username, async(newValue) => {
   isInvalid.value = newValue.length < 2 || newValue.length > 10;
   if (!isInvalid.value && newValue) {
     try {
-      // 将用户名进行 Base64 编码
       const base64Username = btoa(newValue);
       const response = await axios.get(`/api/nameUsable/${base64Username}`);
       if (response.data.errCode === 1000) {
@@ -189,6 +207,23 @@ watch(confirmPassword, (newValue) => {
 });
 
 const submitForm = async () => {
+  if (isInvalid.value || isInvalid1.value || isInvalid2.value) {
+    Message2.value = '请检查输入是否正确';
+    return;
+  }
+  
+  if (!email.value || !verificationCode.value) {
+    Message2.value = '请填写邮箱和验证码';
+    return;
+  }
+  
+  if (captchaInput.value === '') {
+    Message2.value = '请填写验证码';
+    return;
+  }
+  
+  Message2.value = '';
+  
   const formData = new FormData();
   formData.append('userName', username.value);
   formData.append('userPassword', password.value);
@@ -198,7 +233,6 @@ const submitForm = async () => {
   formData.append('emailVerifyKey', emailVerifyKey.value);
   formData.append('captchaToken', captchaToken.value);
 
-  // 新增：添加可选参数
   if (userSex.value) {
     formData.append('userSex', Number(userSex.value));
   }
@@ -208,8 +242,6 @@ const submitForm = async () => {
   if (userSchool.value) {
     formData.append('userSchool', userSchool.value);
   }
-
-  // 新增：添加头像文件到表单数据
   if (selectedAvatarFile.value) {
     formData.append('profile', selectedAvatarFile.value);
   }
@@ -220,18 +252,22 @@ const submitForm = async () => {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
     if (response.data.errCode === 1000) {
       alert('注册成功');
       router.push('/login');
     } else {
       if (response.data.errCode === 1004) {
-        alert('用户操作太频繁，请稍后再试');
+        Message2.value = '操作太频繁，请稍后再试';
       } else {
-        Message2.value = '注册失败，请检查输入';
+        Message2.value = response.data.errMsg || '注册失败，请检查输入';
       }
+      refreshCaptcha();
     }
   } catch (error) {
-    alert('网络错误，请检查网络连接');
+    Message2.value = '网络错误，请检查网络连接';
+    console.error('Registration error:', error);
+    refreshCaptcha();
   }
 };
 
@@ -244,21 +280,23 @@ onMounted(() => {
 .is-invalid {
   border: 1px solid red;
 }
-/* 警告信息的样式 */
+
 .warning {
   color: red;
   font-size: 12px;
 }
+
 .success {
   color: green;
   font-size: 12px;
 }
-/* 全局样式重置 */
-.body2{
+
+.body2 {
   padding: 40px;
-  background-color: #f5f5f5;
+  background-color: rgb(245, 249, 252);
   min-height: 100vh;
 }
+
 * {
   margin: 0;
   padding: 0;
@@ -267,13 +305,10 @@ onMounted(() => {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: rgba(234, 238, 241, 255); /* 设置页面背景颜色 */
+  background-color: rgba(234, 238, 241, 255);
   color: #333;
-  /* 图片背景 */
-  /* background-image: url('注册.jpg');
-  background-size: cover;
-  background-repeat: no-repeat; */
 }
+
 .nav-left {
   display: flex;
   align-items: center;
@@ -281,7 +316,7 @@ body {
 }
 
 .logo {
-  color: #3498db;
+  color: #6eb8ea;
   font-size: 1.5rem;
   text-decoration: none;
   font-weight: bold;
@@ -305,10 +340,9 @@ body {
 }
 
 .nav-right.register {
-  color: #3498db;
+  color: #6eb8ea;
 }
 
-/* 主要内容区域 */
 .container {
   max-width: 400px;
   margin: 2rem auto;
@@ -332,7 +366,6 @@ body {
   color: #666;
 }
 
-/* 表单标签页 */
 .tabs {
   display: flex;
   border-bottom: 2px solid #eee;
@@ -346,12 +379,11 @@ body {
 }
 
 .tab.active {
-  color: #3498db;
-  border-bottom: 2px solid #3498db;
+  color: #8ccbf6;
+  border-bottom: 2px solid #6eb8ea;
   margin-bottom: -2px;
 }
 
-/* 表单样式 */
 .form-group {
   margin-bottom: 1rem;
 }
@@ -374,10 +406,9 @@ body {
 .form-group select:focus,
 .form-group input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #6eb8ea;
 }
 
-/* 验证码区域 */
 .captcha-group {
   display: flex;
   gap: 0.5rem;
@@ -396,11 +427,12 @@ body {
   align-items: center;
   justify-content: center;
   color: #666;
+  cursor: pointer;
 }
 
 .send-code {
   padding: 0 1rem;
-  background: #3498db;
+  background: #6eb8ea;
   color: white;
   border: none;
   border-radius: 4px;
@@ -408,11 +440,15 @@ body {
   white-space: nowrap;
 }
 
-/* 注册按钮 */
+.send-code:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
 .register-btn {
   width: 100%;
   padding: 0.75rem;
-  background: #3498db;
+  background: #6eb8ea;
   color: white;
   border: none;
   border-radius: 4px;
@@ -422,22 +458,9 @@ body {
 }
 
 .register-btn:hover {
-  background: #2980b9;
+  background: #5aa6d8;
 }
 
-/* 协议同意 */
-.agreement {
-  margin-top: 1rem;
-  text-align: center;
-  color: #666;
-}
-
-.agreement a {
-  color: #3498db;
-  text-decoration: none;
-}
-
-/* 登录链接 */
 .login-link {
   margin-top: 1rem;
   text-align: center;
@@ -445,10 +468,10 @@ body {
 }
 
 .login-link a {
-  color: #3498db;
+  color: #6eb8ea;
   text-decoration: none;
 }
-/* 头像预览样式 */
+
 .preview-avatar {
   width: 50px;
   height: 50px;

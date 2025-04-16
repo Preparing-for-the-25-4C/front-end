@@ -39,6 +39,12 @@
       </div>
     </div>
   </div>
+  <footer class="footer">
+  <div class="footer-content">
+    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <p>备案号：鲁ICP备2024065791号</p>
+  </div>
+</footer>
 </template>
 
 <script setup lang="ts">
@@ -102,9 +108,37 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.footer {
+  background-color: #f5f5f5;
+  padding: 1rem 0;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
+}
 .body2{
   padding: 40px;
-  background-color: #f5f5f5;
+  background-color: rgb(245, 249, 252);
   min-height: 100vh;
 }
 * {
@@ -140,7 +174,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #3498db;
+  color: #6eb8ea;
   font-size: 1.5rem;
   text-decoration: none;
   font-weight: bold;
@@ -168,7 +202,7 @@ body {
 }
 
 .nav-right.register {
-  color: #3498db;
+  color: #6eb8ea;
 }
 
 .search-icon {
@@ -195,7 +229,7 @@ body {
   display: inline-block; /* 使元素可以设置宽高，同时保持内联元素的特性 */
   text-transform: uppercase; /* 将文本转换为大写 */
   text-decoration: none; /* 去掉下划线 */
-  color: #3498db; /* 设置文本颜色 */
+  color: #6eb8ea; /* 设置文本颜色 */
   font-size: 1.5rem; /* 设置字体大小 */
   font-weight: bold; /* 设置字体加粗 */
 }
@@ -230,7 +264,7 @@ body {
 
 .form-group input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #6eb8ea;
 }
 
 /* 验证码区域 */
@@ -260,7 +294,7 @@ body {
 .login-btn {
   width: 100%;
   padding: 0.75rem;
-  background: #3498db;
+  background: #6eb8ea;
   color: white;
   border: none;
   border-radius: 4px;
@@ -270,7 +304,7 @@ body {
 }
 
 .login-btn:hover {
-  background: #2980b9;
+  background: #6eb8ea;
 }
 
 /* 其他链接 */
@@ -280,7 +314,7 @@ body {
 }
 
 .forgot-password a {
-  color: #3498db;
+  color: #6eb8ea;
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -316,7 +350,7 @@ body {
 }
 
 .register-link a {
-  color: #3498db;
+  color: #6eb8ea;
   text-decoration: none;
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
   <nav class="navbar" id="body">
     <div class="nav-links">
+      <img src="@/pictures/logo.jpg" alt="Logo" class="navbar-logo">
       <RouterLink to="/" active-class="active">首页</RouterLink>
       <RouterLink to="/questionbank" active-class="active">题库</RouterLink>
       <RouterLink to="/testingrecord" active-class="active">评测记录</RouterLink>
@@ -108,7 +109,6 @@ onUnmounted(() => {
 // 提供更新用户信息的函数
 provide('updateUserInfo', updateUserInfo);
 </script>
-
 <style scoped>
 #body {
   position: fixed;
@@ -122,18 +122,17 @@ provide('updateUserInfo', updateUserInfo);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* 减少右侧的 padding */
-  padding: 1rem 0.5rem; 
-  background: white;
+  padding: 1rem 0.5rem; /* 减少右侧的 padding */
+  background: linear-gradient(90deg, #e6e6fa, white); /* 渐变浅紫背景 */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #ddd; /* 可选：添加底部边框 */
 }
 
 .nav-links a {
-  color: #666;
+  color: #161516;
   text-decoration: none;
   margin-right: 1rem;
 }
-
 .nav-right {
   display: flex;
   align-items: center;
@@ -143,16 +142,18 @@ provide('updateUserInfo', updateUserInfo);
 .nav-right a {
   color: #666;
   text-decoration: none;
+
 }
 
 .nav-right.register {
   color: #3498db;
 }
 
-.active {
-  text-shadow: 0 0 1px black;
+.nav-links a.active {
+  color: #797ca3; /* 设置字体颜色为紫色 */
+  font-weight: bold; /* 可选：加粗字体 */
+  text-decoration: none; /* 去掉下划线 */
 }
-
 .avatar {
   width: 30px;
   height: 30px;
@@ -187,5 +188,10 @@ provide('updateUserInfo', updateUserInfo);
 /* 用户名样式，添加 cursor: pointer */
 .username-span {
   cursor: pointer;
+}
+.navbar-logo {
+  width: 30px;
+  height: 30px;
+  margin-right: 1rem; /* 添加右边距，与文字保持间距 */
 }
 </style>

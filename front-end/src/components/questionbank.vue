@@ -136,8 +136,15 @@
             <tr v-for="problem in problems" :key="problem.id">
               <td>{{ problem.probId }}</td>
               <td>{{ problem.probTitle }}</td>
-              <td>{{ problem.difficulty }}</td>
-              <td>{{ problem.probSuccess }}</td>
+              <td>
+  <span v-if="problem.difficulty === '简单'" class="difficulty-simple">
+    {{ problem.difficulty }}
+  </span>
+  <span v-else>
+    {{ problem.difficulty }}
+  </span>
+</td>
+              <td>{{ problem.probSuccess.toFixed(2) }}</td>
               <td><RouterLink class="submit-btn" :to="{
                 path:'/program',
                 query: { id: problem.probId,
@@ -204,6 +211,12 @@
       </div>
     </aside>
   </div>
+  <footer class="footer">
+  <div class="footer-content">
+    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <p>备案号：鲁ICP备2024065791号</p>
+  </div>
+</footer>
 </template>
 
 <script setup>
@@ -445,6 +458,34 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.footer {
+  background-color: #f5f5f5;
+  padding: 1rem 0;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
+}
 * {
   margin: 0;
   padding: 0;
@@ -460,7 +501,16 @@ onMounted(() => {
   max-width: 1200px;
   margin: 1rem auto;
 }
-
+.difficulty-simple {
+  display: inline-block;
+  padding: 0.2rem 0.5rem; /* 内边距调整矩形大小 */
+  background-color: #B8D0D9; /* 设置背景色 */
+  border-radius: 8px; /* 圆角矩形 */
+  color:white; /* 字体颜色为白色 */
+  font-size: 0.875rem; /* 字体大小 */
+  font-weight: bold; /* 字体加粗 */
+  text-align: center;
+}
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: rgba(253, 255, 253, 255); /* 设置页面背景颜色 */
@@ -517,7 +567,7 @@ body {
 
 .algorithm-card {
   height: 8rem;
-  background: linear-gradient(135deg, #cad9f0, #e2f2fa); /* 浅蓝色渐变背景 */
+  background: linear-gradient(135deg, #dde7f3, white); /* 浅蓝色渐变背景 */
   border-radius: 0.5rem;
   display: flex;
   justify-content: center;
@@ -525,7 +575,7 @@ body {
   text-align: center;
   font-size: 1rem;
   font-weight: bold;
-  color: #414040; /* 白色字体 */
+  color: #616060; /* 白色字体 */
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -535,13 +585,11 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 题目列表区域 */
 .problem-section {
   background: white;
   padding: 1rem;
   border-radius: 8px;
 }
-
 .problem-section:hover {
   border: 2px solid #ddd;
   border-radius: 8px;
@@ -566,7 +614,7 @@ body {
 
 .search-bar button {
   padding: 0.5rem 1rem;
-  background: #1890ff;
+  background: #9597be;
   color: white;
   border: none;
   border-radius: 4px;
@@ -597,17 +645,19 @@ body {
 
 .submit-btn {
   padding: 0.25rem 0.75rem;
-  background: #52c41a;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  color: rgb(59, 59, 59); /* 设置字体颜色为黑色 */
+  background: none; /* 去掉背景色 */
+  border: none; /* 去掉边框 */
   cursor: pointer;
   text-decoration: none;
+  font-weight: bold; /* 加粗字体 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+  transition: transform 0.2s ease; /* 添加点击时的缩放效果 */
 }
 
 .submit-btn:hover {
-  border: 2px solid #3d9412;
-  border-radius: 4px;
+  transform: scale(1.05); /* 鼠标悬停时放大 */
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3); /* 鼠标悬停时加深文字阴影 */
 }
 
 /* 右侧边栏 */
@@ -615,7 +665,7 @@ body {
   background: white;
   padding: 1rem;
   border-radius: 8px;
-  height: 100vh;
+  height: 90vh;
   overflow-y: auto;
 }
 
@@ -690,7 +740,7 @@ body {
 }
 
 .calendar-day.today {
-  background: #1890ff;
+  background: #9597be;
   color: white;
   font-weight: bold;
 }
@@ -738,25 +788,55 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid #eee;
 }
 
 .pagination button {
+  padding: 4px 8px;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
+  background: #e6f7ff;
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+
+.pagination button:disabled {
+  border-color: #ddd;
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 12px;
+  color: #666;
+}
+
+.pagination-button {
   padding: 0.5rem 1rem;
   background: #1890ff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
-.pagination button:disabled {
+.pagination-button:hover:not(:disabled) {
+  background: #40a9ff;
+}
+
+.pagination-button:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
 
-.pagination span {
+.pagination-info {
   font-size: 1rem;
+  color: #666;
 }
 </style>

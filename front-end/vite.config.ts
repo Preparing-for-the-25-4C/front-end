@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: {
       // 这里的 '/api' 是你要代理的路径前缀，你可以根据自己的需求修改
       '/api': {
-        target: 'http://120.46.50.140:8088', // 后端服务器的地址
+        target: 'http://43.138.23.251:8088', // 后端服务器的地址
         changeOrigin: true,
       },
     },
