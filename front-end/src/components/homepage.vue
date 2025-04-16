@@ -775,27 +775,36 @@ main {
 
 /* 算法网格样式 */
 .algorithm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 自动适应列宽 */
+  display: flex;
+  flex-wrap: nowrap; /* 禁止换行 */
+  overflow-x: auto; /* 水平滚动 */
   gap: 1rem;
-  width: 100%; /* 设置宽度为100% */
-  max-width: 78%; /* 与题单的宽度一致 */
-  margin: auto; /* 居中对齐 */
+  width: 100%;
+  height:100px;
+  max-width: 78%;
+  margin: auto;
+  padding-bottom: 1rem; /* 为滚动条留出空间 */
+  -webkit-overflow-scrolling: touch; /* 平滑滚动 */
 }
 .algorithm-card {
+  flex: 0 0 auto; /* 不伸缩，不收缩，自动宽度 */
+  min-width: 200px; /* 最小宽度 */
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
   font-size: 1rem;
   font-weight: bold;
-  color: #616060; /* 字体颜色 */
+  color: #616060;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  background: linear-gradient(90deg, #dde7f3, #ffffff); /* 从浅蓝到白色的渐变背景 */
-  border-radius: 8px; /* 圆角 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
-  padding: 1rem; /* 内边距 */
+  background: linear-gradient(90deg, #dde7f3, #ffffff);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+.algorithm-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .algorithm-card:hover {
