@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L1-001 Hello World</title>
+    <style>
+        :root {
+            --color-primary: hsl(212, 89%, 53%);
+            --text-black: hsl(0, 0%, 0%);
+            --bg-light: hsl(211, 20%, 97%);
+            --text-light: hsl(0, 0%, 45%);
+            --border-color: rgba(0, 0, 0, 0.06);
+            --font-sans: system-ui, -apple-system, sans-serif;
+            --font-mono: 'Courier New', monospace;
+            --space-unit: 1rem;
+        }
+
+        .problem-container {
+            padding: var(--space-unit) calc(var(--space-unit) * 1.5);
+            max-width: 800px;
+            margin: 0 auto;
+            font-family: var(--font-sans);
+        }
+
+        .problem-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: var(--space-unit);
+        }
+
+        .problem-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-black);
+        }
+
+        .problem-meta {
+            background: var(--bg-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-text {
+            background: transparent;
+            color: var(--text-light);
+        }
+
+        .author-info {
+            display: flex;
+            gap: 1.5rem;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .problem-content {
+            margin: var(--space-unit) 0;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: var(--bg-light);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .code-tools {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .spec-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: var(--space-unit);
+        }
+
+        .spec-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .spec-label {
+            width: 120px;
+            color: var(--text-light);
+        }
+
+        @media (max-width: 768px) {
+            .problem-container {
+                padding: 0.75rem;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+  <script type="text/javascript" src="left.js"></script>
+    <article class="problem-container">
+        <header class="problem-header">
+            <h1 class="problem-title">L1-001 Hello World</h1>
+            <div class="problem-meta">分数 5</div>
+        </header>
+
+        <section class="problem-content">
+            <p>这道超级简单的题目没有任何输入。</p>
+            <p>你只需要在一行中输出著名短句“Hello World!”就可以了。</p>
+
+            <h3>输入样例：</h3>
+            <div class="code-block">
+                <pre><code>无</code></pre>
+                <div class="code-tools">
+                    <button aria-label="放大">📈</button>
+                    <button aria-label="全屏">🖥</button>
+                    <button aria-label="复制">📋</button>
+                </div>
+            </div>
+
+            <h3>输出样例：</h3>
+            <div class="code-block">
+                <pre><code>Hello World!</code></pre>
+                <div class="code-tools">
+                    <button aria-label="放大">📈</button>
+                    <button aria-label="全屏">🖥</button>
+                    <button aria-label="复制">📋</button>
+                </div>
+            </div>
+        </section>
+
+        <dl class="spec-list">
+            <div class="spec-item">
+                <dt class="spec-label">代码长度限制</dt>
+                <dd>16 KB</dd>
+            </div>
+            <div class="spec-item">
+                <dt class="spec-label">时间限制</dt>
+                <dd>400 ms</dd>
+            </div>
+            <div class="spec-item">
+                <dt class="spec-label">内存限制</dt>
+                <dd>64 MB</dd>
+            </div>
+            <div class="spec-item">
+                <dt class="spec-label">栈限制</dt>
+                <dd>8192 KB</dd>
+            </div>
+        </dl>
+    </article>
+</body>
+</html>

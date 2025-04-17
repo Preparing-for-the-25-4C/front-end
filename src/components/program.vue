@@ -1,7 +1,4 @@
 <template>
-  <br>
-  <br>
-  <br>
   <div class="container">
     <div class="header">
       <div class="breadcrumb">
@@ -25,22 +22,21 @@
           <h3 class="sidebar-title">提交记录</h3>
           <ul class="submission-list">
             <li
-  v-for="(submission, index) in submissionData"
-  :key="index"
-  class="submission-item"
-  @click="showSubmissionDetails(index)"
->
-  <span
-    :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"
-  ></span>
-  <div class="submission-meta">
-    <span class="problem-name">{{ submission.probName }}</span>
-    <span class="status">{{ submission.status }}</span>
-    <span class="time">{{ submission.recordTime }}</span>
-    <!-- 显示编译错误 -->
-  </div>
-</li>
-</ul>
+              v-for="(submission, index) in submissionData"
+              :key="index"
+              class="submission-item"
+              @click="showSubmissionDetails(index)"
+            >
+              <span
+                :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"
+              ></span>
+              <div class="submission-meta">
+                <span class="problem-name">{{ submission.probName }}</span>
+                <span class="status">{{ submission.status }}</span>
+                <span class="time">{{ submission.recordTime }}</span>
+              </div>
+            </li>
+          </ul>
           <div class="pagination">
             <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
             <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
@@ -51,79 +47,85 @@
 
       <!-- 中间题目描述 -->
       <div class="problem-description-panel">
-        <div class="problem-header">
-          <span class="problem-id">{{ problemInfo.id }}.</span>
-          <span>{{ problemInfo.title }}</span>
-          <span class="difficulty">{{ problemInfo.difficulty }}</span>
-        </div>
+        <article class="problem-container">
+          <header class="problem-header">
+            <h1 class="problem-title">{{ problemInfo.id }}. {{ problemInfo.title }}</h1>
+            <div class="problem-meta">{{ problemInfo.difficulty }}</div>
+          </header>
 
-        <div class="problem-text">
-          {{ problemDetails.description }}
-        </div>
+          <section class="problem-content">
+            <div v-html="problemDetails.description"></div>
+          </section>
+
+          <dl class="spec-list">
+            <div class="spec-item">
+              <dt class="spec-label">代码长度限制</dt>
+              <dd>16 KB</dd>
+            </div>
+            <div class="spec-item">
+              <dt class="spec-label">时间限制</dt>
+              <dd>400 ms</dd>
+            </div>
+            <div class="spec-item">
+              <dt class="spec-label">内存限制</dt>
+              <dd>64 MB</dd>
+            </div>
+            <div class="spec-item">
+              <dt class="spec-label">栈限制</dt>
+              <dd>8192 KB</dd>
+            </div>
+          </dl>
+        </article>
 
         <!-- 提交详情覆盖层 -->
         <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
-  <span class="close-details" @click="closeSubmissionDetails">&times;</span>
-  <h2>提交详情</h2>
-  <div class="submission-info">
-    <p>状态: <span>{{ activeSubmission.status }}</span></p>
-    <p>语言: <span>{{ activeSubmission.language }}</span></p>
-    <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
-  </div>
-  <h3>提交的代码：</h3>
-  <pre>{{ activeSubmission.code }}</pre>
-  <!-- 显示编译错误 -->
-  <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
-  <span class="close-details" @click="closeSubmissionDetails">&times;</span>
-  <h2>提交详情</h2>
-  <div class="submission-info">
-    <p>状态: <span>{{ activeSubmission.status }}</span></p>
-    <p>语言: <span>{{ activeSubmission.language }}</span></p>
-    <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
-  </div>
-  <h3>提交的代码：</h3>
-  <pre>{{ activeSubmission.code }}</pre>
-  <!-- 显示编译错误 -->
-  <div v-if="activeSubmission.compileError" class="compile-error">
-    <h3>编译错误：</h3>
-    <pre>{{ activeSubmission.compileError }}</pre>
-  </div>
-</div>
-  </div>
-</div>
+          <span class="close-details" @click="closeSubmissionDetails">&times;</span>
+          <h2>提交详情</h2>
+          <div class="submission-info">
+            <p>状态: <span>{{ activeSubmission.status }}</span></p>
+            <p>语言: <span>{{ activeSubmission.language }}</span></p>
+            <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
+          </div>
+          <h3>提交的代码：</h3>
+          <pre>{{ activeSubmission.code }}</pre>
+          <div v-if="activeSubmission.compileError" class="compile-error">
+            <h3>编译错误：</h3>
+            <pre>{{ activeSubmission.compileError }}</pre>
+          </div>
+        </div>
+      </div>
 
       <!-- 右侧代码编辑区域 -->
       <div class="code-panel">
-    <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
-    
-    <!-- 添加控制按钮 -->
-    <div class="io-control">
-      <button @click="toggleIO" class="btn-toggle">
-        {{ showInputOutput ? '隐藏输入输出' : '显示输入输出' }}
-        <i :class="['arrow', showInputOutput ? 'down' : 'up']"></i>
-      </button>
-    </div>
-
-    <!-- 包裹输入输出容器 -->
-    <div class="output-panel" v-show="showInputOutput">
-      <div class="panel-content">
-        <div class="input-output-container">
-          <!-- 原有输入输出内容 -->
-          <div class="input-section">
-            <h3>输入数据</h3>
-            <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
-          </div>
-          <div class="output-section">
-            <h3>运行结果</h3>
-            <pre class="output-box">{{ stdOut }}</pre>
-          </div>
+        <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
+        
+        <!-- 添加控制按钮 -->
+        <div class="io-control">
+          <button @click="toggleIO" class="btn-toggle">
+            {{ showInputOutput ? '隐藏输入输出' : '显示输入输出' }}
+            <i :class="['arrow', showInputOutput ? 'down' : 'up']"></i>
+          </button>
         </div>
-        <div class="panel-actions">
-          <button class="btn" @click="clearOutput">清空</button>
+
+        <!-- 包裹输入输出容器 -->
+        <div class="output-panel" v-show="showInputOutput">
+          <div class="panel-content">
+            <div class="input-output-container">
+              <div class="input-section">
+                <h3>输入数据</h3>
+                <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
+              </div>
+              <div class="output-section">
+                <h3>运行结果</h3>
+                <pre class="output-box">{{ stdOut }}</pre>
+              </div>
+            </div>
+            <div class="panel-actions">
+              <button class="btn" @click="clearOutput">清空</button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
     </main>
   </div>
 </template>
@@ -131,9 +133,9 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
-import { useRouter } from 'vue-router';
+import * as monaco from 'monaco-editor';
 import router from '@/router';
 const showInputOutput = ref(true);
 
@@ -375,7 +377,8 @@ const fetchProblemDetails = async () => {
   });
 
   if (response.data.errCode === 1000) {
-    problemDetails.description = response.data.data;
+    const extractedData = extractJsonItems(response.data.data);
+    problemDetails.description = extractedData;
   } else {
     if (response.data.errCode === 1001) {
             alert('请先登录！');
@@ -548,8 +551,126 @@ function showSubmissionDetails(submissionId: number) {
 function closeSubmissionDetails() {
   isSubmissionDetailsActive.value = false;
 }
+
+function extractJsonItems(jsonStr) {
+    const parsedData = JSON.parse(jsonStr);
+    const result = [];
+
+    // 递归遍历所有层级的值
+    function traverse(obj) {
+        if (Array.isArray(obj)) {
+            // 数组：遍历所有元素
+            obj.forEach(item => traverse(item));
+        } else if (typeof obj === 'object' && obj !== null) {
+            // 对象：遍历所有属性值
+            Object.values(obj).forEach(value => traverse(value));
+        } else {
+            // 基本类型：直接存入结果
+            result.push(JSON.stringify(obj));
+        }
+    }
+
+    traverse(parsedData);
+    return result.join('\n');
+}
 </script>
 <style scoped>
+:root {
+  --color-primary: hsl(212, 89%, 53%);
+  --text-black: hsl(0, 0%, 0%);
+  --bg-light: hsl(211, 20%, 97%);
+  --text-light: hsl(0, 0%, 45%);
+  --border-color: rgba(0, 0, 0, 0.06);
+  --font-sans: system-ui, -apple-system, sans-serif;
+  --font-mono: 'Courier New', monospace;
+  --space-unit: 1rem;
+}
+
+.problem-description-panel {
+  width: 40%;
+  padding: 20px;
+  border-right: 1px solid #eee;
+  overflow-y: auto;
+  position: relative;
+}
+
+.problem-container {
+  padding: var(--space-unit) calc(var(--space-unit) * 1.5);
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+}
+
+.problem-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: var(--space-unit);
+}
+
+.problem-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-black);
+}
+
+.problem-meta {
+  background: var(--bg-light);
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.problem-content {
+  margin: var(--space-unit) 0;
+  line-height: 1.6;
+}
+
+.code-block {
+  background: var(--bg-light);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.code-tools {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.spec-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: var(--space-unit);
+}
+
+.spec-item {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.spec-label {
+  width: 120px;
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .problem-container {
+    padding: 0.75rem;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
 .actions {
   display: flex;
   align-items: center;
@@ -806,140 +927,6 @@ body {
   background-color: #f0f0f0;
 }
 
-/* 中间题目描述 */
-.problem-description-panel {
-  width: 40%;
-  padding: 20px;
-  border-right: 1px solid #eee;
-  overflow-y: auto;
-  position: relative;
-}
-
-.problem-header {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.problem-id {
-  color: #666;
-}
-
-.difficulty {
-  padding: 2px 8px;
-  background: #e6f7ff;
-  color: #1890ff;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.problem-text {
-  color: #666;
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
-.io-section {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-weight: normal;
-  margin-bottom: 8px;
-}
-
-.io-content {
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  padding: 12px;
-  font-family: monospace;
-  margin-bottom: 16px;
-}
-
-.limits-grid {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.limit-item {
-  color: #666;
-  font-size: 14px;
-}
-
-.limit-value {
-  float: right;
-  color: #333;
-}
-
-/* 右侧代码编辑区域 */
-.code-panel {
-  flex: 1;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.code-editor {
-  flex: 1;
-  width: 100%;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 12px;
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  resize: none;
-  margin-bottom: 20px;
-}
-
-.output-panel {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 12px;
-  background: #f8f9fa;
-}
-
-.panel-header {
-  display: none; /* 隐藏标题部分 */
-}
-
-.panel-title {
-  font-size: 14px;
-  color: #666;
-}
-
-.panel-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.panel-content {
-  flex: 1;
-  padding: 12px;
-  font-family: monospace;
-  font-size: 14px;
-  overflow-y: auto;
-  background: white;
-}
-.output-box {
-  height: 150px;
-  overflow-y: auto;
-  background: #f5f5f5;
-  white-space: pre-wrap; /* 保留换行符并自动换行 */
-  word-wrap: break-word; /* 长单词换行 */
-  font-family: monospace; /* 使用等宽字体 */
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
 /* 提交详情覆盖层 */
 .submission-details {
   position: absolute;
