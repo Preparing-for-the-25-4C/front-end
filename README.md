@@ -1,5 +1,6 @@
 # 模块及模块的层次结构
 以下是src目录下的模块及层次结构：
+```
 └─src
     │  App.vue  根组件，存放导航栏信息
     │  main.ts    初始化vue
@@ -22,6 +23,7 @@
     │      
     └─router
             index.ts 存放路由路径信息
+```
 # 模块的调用关系
 ## 路由层面：src/router/index.ts 作为路由配置中心，控制各个组件的加载。
 ## 数据获取层面：homepage.vue 和 questionbank.vue 组件通过调用 axios 发送请求获取题目数据。
