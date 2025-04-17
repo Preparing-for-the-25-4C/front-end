@@ -31,7 +31,8 @@ const instance = axios.create({
             const token=localStorage.getItem('token')
             const response = await axios.post(`/api/isLogin/${token}` );
             if(response.data.errCode==1006){
-            localStorage.removeItem('token')
+
+            localStorage.removeItem('token');
             alert('Token 已过期，请重新登录');
             router.push('/login');
           }

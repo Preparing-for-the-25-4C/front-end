@@ -2,41 +2,34 @@
   <br>
   <br>
   <main>
-    <div class="modal-overlay" :style="{ display: showInterestModal ? 'block' : 'none' }"></div>
-<div class="interest-modal" :style="{ display: showInterestModal ? 'block' : 'none' }">
-  <div class="modal-header">
-    <h2 class="modal-title">选择您感兴趣的算法标签</h2>
-  </div>
-  <div class="modal-content">
-    <div class="interest-tags">
-      <div 
-        v-for="(tag, index) in allTags" 
-        :key="index" 
-        class="interest-tag" 
-        :class="{ selected: selectedInterests.includes(tag) }"
-        @click="toggleInterest(tag)"
-      >
-        {{ tag }}
+    <div class="modal-overlay" v-if="showInterestModal" @click="skipInterestSelection"></div>
+    <div class="modal" v-if="showInterestModal">
+      <div class="modal-header">
+        <h2 class="modal-title">选择您感兴趣的算法标签</h2>
+        <button class="modal-close" @click="skipInterestSelection">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="interest-tags">
+          <div 
+            v-for="(tag, index) in allTags" 
+            :key="index" 
+            class="interest-tag-card" 
+            :class="{ selected: selectedInterests.includes(tag) }"
+            @click="toggleInterest(tag)"
+          >
+            <p>{{ tag }}</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="skip-btn" @click="skipInterestSelection">跳过</button>
+          <button class="submit-btn" @click="submitInterests">提交</button>
+        </div>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="skip-btn" @click="skipInterestSelection">跳过</button>
-      <button class="submit-btn" @click="submitInterests">提交</button>
-    </div>
-  </div>
-</div>
 
 <section class="knowledge-graph-section">
   <div class="knowledge-graph-container">
     <h3 class="section-title">知识图谱</h3>
-    <div class="knowledge-graph">
-      <!-- 嵌入知识图谱 -->
-      <iframe 
-        src="/industrial-revolution-kg.html" 
-        class="knowledge-graph-iframe"
-        frameborder="0"
-      ></iframe>
-    </div>
   </div>
 </section>
     <br>
@@ -139,12 +132,14 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import { inject } from 'vue';
 import { RouterLink } from 'vue-router'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 const showInterestModal = ref(false)
 const selectedInterests = ref([])
 const hasCheckedInterest = ref(false)
+const handleTokenExpired = inject('handleTokenExpired');
 const colors = [
   '#FFCDD2', '#F8BBD0', '#E1BEE7', '#D1C4E9', '#C5CAE9', '#BBDEFB',
   '#B3E5FC', '#B2EBF2', '#B2DFDB', '#C8E6C9', '#DCEDC8', '#F0F4C3',
@@ -193,147 +188,88 @@ const goToProblem = (id, title) => {
 const fetchRecommendedProblems = async () => {
   const token = localStorage.getItem('token');
   if (!token) {
-    // 未登录时显示假的推荐题目
-    recommendedProblems.value = [
-      { id: 1, title: '题目 1' },
-      { id: 2, title: '题目 2' },
-      { id: 3, title: '题目 3' },
-      { id: 4, title: '题目 4' },
-      { id: 5, title: '题目 5' },
-    ];
-    return;
-  }
-
-  try {
-    const response = await axios.get('/api/requestRecommend', {
-      headers: { Token: token },
-    });
-
+    // 未登录时调用随机题目接口
+    try {
+      const response = await axios.get('/api/getRandomProbList');
     if (response.data.errCode === 1000) {
       recommendedProblems.value = response.data.data.probList.map((problem) => ({
         id: problem.probId,
         title: problem.probTitle,
       }));
+      } else {
+        console.error('获取随机题目失败:', response.data.errMsg);
+      }
+    } catch (error) {
+      console.error('调用随机题目接口失败:', error);
+    }
+    return;
+  }
+
+  // 已登录时调用推荐题目接口
+  try {
+    const response = await axios.get('/api/requestRecommend', {
+      headers: { Token: token },
+    });
+    if (response.data.errCode === 1006) {
+      // 调用 handleTokenExpired 处理 token 过期
+      handleTokenExpired();}else if (response.data.errCode === 1000) {
+      recommendedProblems.value = response.data.data.probList.map((problem) => ({
+        id: problem.probId,
+        title: problem.probTitle,
+      }));
     } else {
-      if (response.data.errCode === 1001) {
-            alert('服务器内部错误');
-        }
-        if (response.data.errCode === 1002) {
-            alert('验证码错误');
-        }
-        if (response.data.errCode === 1003) {
-            alert('用户名或密码错误'); 
-        }
-        if(response.data.errCode === 1004){
-            alert('幂等性错误'); 
-        }
-        if(response.data.errCode === 1005){
-            alert('用户名已存在');
-        }
-        if(response.data.errCode === 1006){
-            alert('请先登录！');
-            router.push('/login'); // 重定向到登录页面
-        }
-        if(response.data.errCode === 1007){
-            alert('邮箱验证码错误'); 
-        }
-        if(response.data.errCode === 1008){
-            alert('数据不符合规范'); 
-        }
-        if(response.data.errCode === 1009){
-            alert('邮箱已被使用'); 
-        }
-        if(response.data.errCode === 1010){
-            alert('手机号已被使用'); 
-        }
-        if(response.data.errCode === 1011){
-            alert('不存在的静态资源'); 
-        }
+      console.error('获取推荐题目失败:', response.data.errMsg);
     }
   } catch (error) {
-    console.error('获取推荐题目失败:', error);
+    console.error('调用推荐题目接口失败:', error);
   }
 };
-onMounted(() => {
-  fetchRecommendedProblems();
-});
-// 在组件挂载时获取推荐题目
-onMounted(() => {
-  fetchRecommendedProblems();
-});
 const checkUserInterest = async () => {
-  const token = localStorage.getItem('token')
-  if (!token) return // 未登录用户不处理
+  const token = localStorage.getItem('token');
+  if (!token) return; // 未登录用户不处理
+
   try {
-    const response = await axios.get(`/api/isInterest/${token}`)
+    const response = await axios.get(`/api/isInterest/${token}`, {
+      headers: { Token: token },
+    });
     if (response.data.errCode === 1017) {
       // 用户未设置兴趣标签，显示选择框
       showInterestModal.value = true;
     }
   } catch (error) {
-    console.error('检查兴趣标签失败:', error)
+    console.error('检查兴趣标签失败:', error);
   } finally {
-    hasCheckedInterest.value = true
+    hasCheckedInterest.value = true;
   }
-}
+};
+
 const submitInterests = async () => {
-  const token = localStorage.getItem('token')
-  if (!token) return
-  
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
   try {
-    const interests = selectedInterests.value.join(';')
+    const interests = selectedInterests.value.join(';');
     const response = await axios.post(
-      `/api/submitInterest?interest=${encodeURIComponent(interests)}`, // 将兴趣标签作为 Query 参数
-      null, // POST 请求体为空
-      { headers: { Token: token } } // 将 Token 放入请求头
+      `/api/submitInterest?interest=${encodeURIComponent(interests)}`,
+      null,
+      { headers: { Token: token } }
     );
 
     if (response.data.errCode === 1000) {
       alert('兴趣标签提交成功！');
       showInterestModal.value = false; // 关闭弹窗
     } else {
-      if (response.data.errCode === 1001) {
-            alert('服务器内部错误');
-        }
-        if (response.data.errCode === 1002) {
-            alert('验证码错误');
-        }
-        if (response.data.errCode === 1003) {
-            alert('用户名或密码错误'); 
-        }
-        if(response.data.errCode === 1004){
-            alert('幂等性错误'); 
-        }
-        if(response.data.errCode === 1005){
-            alert('用户名已存在');
-        }
-        if(response.data.errCode === 1006){
-            alert('token过期'); 
-        }
-        if(response.data.errCode === 1007){
-            alert('邮箱验证码错误'); 
-        }
-        if(response.data.errCode === 1008){
-            alert('数据不符合规范'); 
-        }
-        if(response.data.errCode === 1009){
-            alert('邮箱已被使用'); 
-        }
-        if(response.data.errCode === 1010){
-            alert('手机号已被使用'); 
-        }
-        if(response.data.errCode === 1011){
-            alert('不存在的静态资源'); 
-        }
+      alert('提交失败，请重试！');
     }
   } catch (error) {
     console.error('提交兴趣标签失败:', error);
     alert('提交失败，请检查网络或服务器状态！');
   }
-}
+};
+
 const skipInterestSelection = () => {
-  showInterestModal.value = false
-}
+  showInterestModal.value = false;
+};
 
 // 切换选择兴趣标签
 const toggleInterest = (tag) => {
@@ -543,6 +479,7 @@ function closeModal() {
 onMounted(() => {
   checkUserInterest()
   fetchProblems();
+  fetchRecommendedProblems();
 });
 
 // 监听prop变化更新问题
@@ -660,6 +597,128 @@ const getProblemSetClass = (title) => {
 </script>
 
 <style scoped>
+.knowledge-graph-iframe {
+  width: 100%; /* 占满父容器宽度 */
+  height: 400px; /* 设置高度 */
+  border: none; /* 去掉边框 */
+  border-radius: 8px; /* 添加圆角 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
+  margin-top: 1rem; /* 与上方内容保持间距 */
+}
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.interest-tags {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.interest-tag-card {
+  background: linear-gradient(135deg, #e4e3f1, #c2c0d8);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #223c5B;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.interest-tag-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.interest-tag-card.selected {
+  background: linear-gradient(135deg, #add1f3, #add1f3);
+  border-color: #add1f3;
+  color: #223c5B;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.skip-btn,
+.submit-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.skip-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.skip-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.submit-btn {
+  background-color: #add1f3;
+  color: #ffffff;
+}
+
+.submit-btn:hover {
+  background-color: #add1f3;
+  transform: translateY(-2px);
+}
 .knowledge-graph-section {
   width: 78%; /* 与题单部分的宽度一致 */
   margin: auto; /* 居中对齐 */

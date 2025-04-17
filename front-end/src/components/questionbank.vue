@@ -5,7 +5,7 @@
     <!-- 左侧主要内容 -->
     <main>
       <!-- 推荐算法部分 -->
-        <section class="algorithm-section">
+      <section class="algorithm-section">
   <div class="algorithm-title">
     <h3>推荐算法</h3>
   </div>
@@ -188,27 +188,39 @@
           
           <!-- 当月日期 -->
           <div 
-            v-for="day in daysInMonth" 
-            :key="day"
-            :class="[
-              'calendar-day', 
-              isToday(day) ? 'today' : '',
-              selectedDate === day ? 'selected' : ''
-            ]"
-            @click="selectDate(day)"
-          >
-            {{ day }}
-          </div>
+  v-for="day in daysInMonth" 
+  :key="day"
+  :class="
+[
+    'calendar-day', 
+    isToday(day) ? 'today' : '',
+    selectedDate === day ? 'selected' : '',
+    hasLearned(day) ? 'has-learned' : ''  // 新增条件class
+  ]
+"
+  @click="selectDate(day)"
+>
+  {{ day }}
+</div>
         </div>
       </div>
 
       <!-- 进度图表部分 -->
       <div class="progress-chart">
-        <div class="progress-ring" :style="{
-          background: `conic-gradient(#1890ff 0% ${processRate}%, #f0f0f0 ${processRate}% 100%)`
-        }"></div>
-        <div class="progress-center">{{ processRate }}%</div>
-      </div>
+        <div class="progress-ring">
+  <div 
+    class="progress-ring-bg"
+    :style="
+{
+      background: `conic-gradient(#1890ff 0% ${processRate}%, #f0f0f0 ${processRate}% 100%)`
+    }
+"
+  ></div>
+  <div class="progress-ring-center">
+  <span class="progress-text">{{ acNumber }}/{{ totalNumber }}</span>
+</div>
+</div>
+</div>
     </aside>
   </div>
   <footer class="footer">
@@ -227,67 +239,71 @@ import { useRouter } from 'vue-router';
 const recommendedProblems = ref([]); 
 const router = useRouter();
 const Token = ref();
-const processRate = ref(0);
-
-// 修改后的fetchProcessRate
+const processRate = ref(0); // 正确率
+const acNumber = ref(0); // 做对的题目数
+const totalNumber = ref(0); // 总题目数
 const fetchProcessRate = async () => {
+  try {
     const response = await axios.get('/api/getProcessRate', {
-      headers: { 'Token': Token.value }
+      headers: { Token: Token.value },
     });
+
     if (response.data.errCode === 1000) {
-      processRate.value = response.data.data;
+      // 确保值是数字类型
+      acNumber.value = Number(response.data.data.acNumber) || 0;
+      totalNumber.value = Number(response.data.data.totalNumber) || 0;
+      
+      // 计算百分比，确保不超过100%
+      const calculatedRate = totalNumber.value > 0 
+  ? ((acNumber.value / totalNumber.value) * 100).toFixed(2) // 保留两位小数
+  : 0;
+processRate.value = parseFloat(calculatedRate); // 转换为数字类型
+      
+      console.log('进度更新:', {
+        acNumber: acNumber.value,
+        totalNumber: totalNumber.value,
+        processRate: processRate.value
+      });
     } else {
-      if (response.data.errCode === 1001) {
-        alert('请先登录！');
-        router.push('/login'); // 跳转到登录页面
-      }
-      if (response.data.errCode === 1002) {
-        alert('验证码错误');
-      }
-      if (response.data.errCode === 1003) {
-        alert('用户名或密码错误'); 
-      }
-      if(response.data.errCode === 1004){
-        alert('幂等性错误'); 
-      }
-      if(response.data.errCode === 1005){
-        alert('用户名已存在');
-      }
-      if(response.data.errCode === 1006){
-        alert('请先登录！');
-        router.push('/login'); // 跳转到登录页面
-      }
-      if(response.data.errCode === 1007){
-        alert('邮箱验证码错误'); 
-      }
-      if(response.data.errCode === 1008){
-        alert('数据不符合规范'); 
-      }
-      if(response.data.errCode === 1009){
-        alert('邮箱已被使用'); 
-      }
-      if(response.data.errCode === 1010){
-        alert('手机号已被使用'); 
-      }
-      if(response.data.errCode === 1011){
-        alert('不存在的静态资源'); 
-      }
+      console.error('获取进度数据失败:', response.data.errMsg);
+      // 设置默认值
+      acNumber.value = 0;
+      totalNumber.value = 0;
+      processRate.value = 0;
     }
-  } 
+  } catch (error) {
+    console.error('调用进度接口失败:', error);
+    // 设置默认值
+    acNumber.value = 0;
+    totalNumber.value = 0;
+    processRate.value = 0;
+  }
+};
+const hasLearned = (day) => {
+  const dateStr = `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return learningDates.value.includes(dateStr); // 判断日期是否在学习日期数组中
+};
   const fetchRecommendedProblems = async () => {
   const token = localStorage.getItem('token');
   if (!token) {
-    // 未登录时显示假的推荐题目
-    recommendedProblems.value = [
-      { id: 1, title: '题目 1' },
-      { id: 2, title: '题目 2' },
-      { id: 3, title: '题目 3' },
-      { id: 4, title: '题目 4' },
-      { id: 5, title: '题目 5' },
-    ];
+    // 未登录时调用随机题目接口
+    try {
+      const response = await axios.get('/api/getRandomProbList');
+      if (response.data.errCode === 1000) {
+        recommendedProblems.value = response.data.data.probList.map((problem, index) => ({
+          id: index, // 使用索引作为唯一标识
+          title: problem.probTitle,
+        }));
+      } else {
+        console.error('获取随机题目失败:', response.data.errMsg);
+      }
+    } catch (error) {
+      console.error('调用随机题目接口失败:', error);
+    }
     return;
   }
 
+  // 已登录时调用推荐题目接口
   try {
     const response = await axios.get('/api/requestRecommend', {
       headers: { Token: token },
@@ -302,7 +318,7 @@ const fetchProcessRate = async () => {
       console.error('获取推荐题目失败:', response.data);
     }
   } catch (error) {
-    console.error('获取推荐题目失败:', error);
+    console.error('调用推荐题目接口失败:', error);
   }
 };
 // 题目列表数据
@@ -314,7 +330,6 @@ const goToProblem = (id, title) => {
     router.push('/login'); // 跳转到登录页面
     return;
   }
-
   router.push({
     path: '/program',
     query: { id, title },
@@ -365,22 +380,23 @@ const nextPage = () => {
 
 // 获取题目数据
 const fetchProblems = async () => {
-    const response = await axios.post(
+  const token = localStorage.getItem('token'); // 检查是否登录
+  const headers = token ? { Token: token } : {}; // 如果登录，添加请求头
+
+  // 如果未登录，移除 `status` 参数，避免通过“是否通过”标签检索
+  const requestBody = {
+    status: token ? queryParams.value.status : null, // 未登录时不允许通过状态检索
+    probSkill: queryParams.value.probSkill || null,
+    difficulty: queryParams.value.difficulty || null,
+    desc: queryParams.value.desc,
+    orderBy: queryParams.value.orderBy || null,
+    vague: queryParams.value.vague || null, // 模糊查询参数
+  };
+
+  const response = await axios.post(
       `/api/getProblems/${pageSize.value}/${pageNum.value}`,
-      {
-        // 请求体中的参数
-        status: queryParams.value.status||null,
-        probSkill: queryParams.value.probSkill||null,
-        difficulty: queryParams.value.difficulty||null,
-        desc: queryParams.value.desc,
-        orderBy: queryParams.value.orderBy||null,
-        vague: queryParams.value.vague||null // 模糊查询参数
-      },
-      {
-        headers: {
-          'Token': Token.value // 将 Token 放到请求头中
-        }
-      }
+      requestBody,
+      { headers } // 动态添加请求头
     );
 
     if (response.data.errCode === 1000) {
@@ -423,33 +439,61 @@ const selectDate = (day) => {
 };
 
 // 切换到上一个月
+// 新增学习日历数据
+const learningDates = ref([]);
+
+// 获取学习日历数据
+const fetchLearningCalendar = async (year) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const response = await axios.get(`/api/getUserLeanCalendar/${year}`, {
+      headers: { Token: token },
+    });
+
+    if (response.data.errCode === 1000) {
+      // 确保接口返回的日期格式为 YYYY-MM-DD
+      learningDates.value = response.data.data.map(date => {
+        const [year, month, day] = date.split('-');
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      });
+      console.log('学习日历数据:', learningDates.value);
+    }
+  } catch (error) {
+    console.error('获取学习日历失败:', error);
+  }
+};
+
+// 修改月份切换方法
 const prevMonth = () => {
   if (currentMonth.value === 1) {
     currentYear.value--;
     currentMonth.value = 12;
+    fetchLearningCalendar(currentYear.value); // 切换年份时重新获取
   } else {
     currentMonth.value--;
   }
   selectedDate.value = null;
 };
 
-// 切换到下一个月
 const nextMonth = () => {
   if (currentMonth.value === 12) {
     currentYear.value++;
     currentMonth.value = 1;
+    fetchLearningCalendar(currentYear.value); // 切换年份时重新获取
   } else {
     currentMonth.value++;
   }
   selectedDate.value = null;
 };
 
-// 页面加载时初始化
+// 在onMounted中添加
 onMounted(() => {
   fetchProblems();
   fetchProcessRate();
+  fetchLearningCalendar(currentYear.value); // 初始化获取当前年数据
   
-  // 如果是当月，选中今天的日期
   if (currentMonth.value === today.getMonth() + 1 && 
       currentYear.value === today.getFullYear()) {
     selectedDate.value = today.getDate();
@@ -469,7 +513,6 @@ onMounted(() => {
   align-items: center;
   gap: 1rem;
 }
-
 .footer-content {
   display: flex;
   align-items: center;
@@ -490,6 +533,18 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+.calendar-day.has-learned::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: #52c41a;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 .body2 {
   padding: 40px;
@@ -539,7 +594,6 @@ body {
   border-radius: 4px;
 }
 
-/* 推荐算法区域 */
 .algorithm-section {
   background: white;
   padding: 1rem;
@@ -584,7 +638,6 @@ body {
   transform: translateY(-5px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-
 .problem-section {
   background: white;
   padding: 1rem;
@@ -720,6 +773,7 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 .calendar-day {
+  position: relative;
   padding: 0.5rem;
   font-size: 0.875rem;
   cursor: pointer;
@@ -754,36 +808,58 @@ body {
 .progress-section {
   text-align: center;
 }
-
 .progress-chart {
   width: 150px;
   height: 150px;
   margin: 1rem auto;
   position: relative;
-  border-radius: 50%;
-  background: white;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
 .progress-ring {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  position: absolute;
-}
-.progress-center {
-  position: absolute;
-  font-size: 1.5rem;
-  color: black;
-  font-weight: bold;
-  z-index: 2;
-}
-.progress-section:hover {
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  position: relative;
+  background: #f0f0f0; /* 灰色背景 */
 }
 
+.progress-ring-bg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: absolute;
+  /* 移除 background 属性，因为它会被动态设置 */
+}
+
+.progress-ring-center {
+  width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.progress-text {
+  font-size: 0.875rem;
+  color: #333;
+  font-weight: bold;
+}
+
+.progress-percentage {
+  font-size: 1rem;
+  color: #1890ff;
+  font-weight: bold;
+}
 .pagination {
   display: flex;
   justify-content: center;

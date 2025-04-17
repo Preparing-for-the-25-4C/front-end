@@ -13,19 +13,17 @@
         <img :src="avatar" alt="Avatar" class="avatar"> 
         <!-- 显示用户名 -->
         <span @click="toggleDropdown" class="username-span">{{ username }}</span>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <!-- 下拉框 -->
         <div v-if="isDropdownVisible" class="dropdown">
-  <RouterLink to="/profile">个人主页</RouterLink>
-  <RouterLink to="/login" @click="logout">退出登录</RouterLink>
-</div>
+          <RouterLink to="/profile">个人主页</RouterLink>
+          <RouterLink to="/login" @click="logout">退出登录</RouterLink>
+        </div>
       </div>
       <div v-else>
         <!-- 未登录时显示登录和注册链接 -->
         <RouterLink to="/login">登录</RouterLink>
         &nbsp;&nbsp;&nbsp;&nbsp;
         <RouterLink to="/register">注册</RouterLink>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
       </div>
     </div>
   </nav>
@@ -54,7 +52,6 @@ const updateUserInfo = () => {
   if (token) {
     isLoggedIn.value = true;
     username.value = localStorage.getItem('username') || '';
-    // Update this line to use the full avatar URL
     avatar.value = localStorage.getItem('avatar') || '';
   } else {
     isLoggedIn.value = false;
@@ -63,14 +60,22 @@ const updateUserInfo = () => {
   }
 };
 
+// 处理 token 过期错误
+const handleTokenExpired = () => {
+  alert('登录已过期，请重新登录！');
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  isLoggedIn.value = false;
+  router.push('/login');
+};
+
 // 退出登录函数
 const logout = () => {
   // 清除 localStorage 中的登录信息
   localStorage.removeItem('token');
-  localStorage.removeItem('perms');
-  localStorage.removeItem('loginUser');
-  localStorage.removeItem('avatar');
   localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
   // 更新登录状态
   updateUserInfo();
   // 隐藏下拉框
@@ -81,8 +86,9 @@ const logout = () => {
 
 // 切换下拉框显示状态
 const toggleDropdown = () => {
-  isDropdownVisible.value =!isDropdownVisible.value;
+  isDropdownVisible.value = !isDropdownVisible.value;
 };
+
 // 点击页面其他地方关闭下拉框
 const handleClickOutside = (event: MouseEvent) => {
   const dropdown = document.querySelector('.dropdown');
@@ -91,14 +97,24 @@ const handleClickOutside = (event: MouseEvent) => {
     isDropdownVisible.value && 
     dropdown && 
     usernameElement && 
-    (!dropdown.contains(event.target as Node) &&!usernameElement.contains(event.target as Node))
+    (!dropdown.contains(event.target as Node) && !usernameElement.contains(event.target as Node))
   ) {
     isDropdownVisible.value = false;
   }
 };
 
+// 模拟接口请求，检查 token 是否过期
+const checkTokenValidity = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    isLoggedIn.value = false;
+    return;
+  }
+};
+
 onMounted(() => {
   updateUserInfo();
+  checkTokenValidity();
   document.addEventListener('click', handleClickOutside);
 });
 
@@ -108,7 +124,9 @@ onUnmounted(() => {
 
 // 提供更新用户信息的函数
 provide('updateUserInfo', updateUserInfo);
+provide('handleTokenExpired', handleTokenExpired);
 </script>
+
 <style scoped>
 #body {
   position: fixed;
@@ -122,10 +140,10 @@ provide('updateUserInfo', updateUserInfo);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0.5rem; /* 减少右侧的 padding */
-  background: linear-gradient(90deg, #e6e6fa, white); /* 渐变浅紫背景 */
+  padding: 1rem 0.5rem;
+  background: linear-gradient(90deg, #e6e6fa, white);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid #ddd; /* 可选：添加底部边框 */
+  border-bottom: 1px solid #ddd;
 }
 
 .nav-links a {
@@ -133,6 +151,7 @@ provide('updateUserInfo', updateUserInfo);
   text-decoration: none;
   margin-right: 1rem;
 }
+
 .nav-right {
   display: flex;
   align-items: center;
@@ -142,7 +161,6 @@ provide('updateUserInfo', updateUserInfo);
 .nav-right a {
   color: #666;
   text-decoration: none;
-
 }
 
 .nav-right.register {
@@ -150,16 +168,17 @@ provide('updateUserInfo', updateUserInfo);
 }
 
 .nav-links a.active {
-  color: #797ca3; /* 设置字体颜色为紫色 */
-  font-weight: bold; /* 可选：加粗字体 */
-  text-decoration: none; /* 去掉下划线 */
+  color: #797ca3;
+  font-weight: bold;
+  text-decoration: none;
 }
+
 .avatar {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 10px; /* Add some space between avatar and username */
+  margin-right: 10px;
 }
 
 .logout-btn {
@@ -171,11 +190,10 @@ provide('updateUserInfo', updateUserInfo);
   cursor: pointer;
 }
 
-/* 下拉框样式 */
 .dropdown {
   position: absolute;
-  top: 40px; /* 根据实际情况调整，确保下拉框在用户名下方 */
-  right: 10px; /* 根据实际情况调整，确保下拉框位置合适 */
+  top: 40px;
+  right: 10px;
   background-color: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
@@ -185,13 +203,13 @@ provide('updateUserInfo', updateUserInfo);
   z-index: 1000;
 }
 
-/* 用户名样式，添加 cursor: pointer */
 .username-span {
   cursor: pointer;
 }
+
 .navbar-logo {
   width: 30px;
   height: 30px;
-  margin-right: 1rem; /* 添加右边距，与文字保持间距 */
+  margin-right: 1rem;
 }
 </style>

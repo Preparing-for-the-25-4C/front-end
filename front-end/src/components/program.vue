@@ -186,7 +186,6 @@ try {
       totalPages.value = response.data.data.length < pageSize ? currentPage.value : currentPage.value + 1;
   } else {
     handleSubmitError(response.data.errCode);
-    alert('获取提交记录失败');
   }
 } catch (error) {
   console.error('请求提交记录失败:', error);
@@ -345,12 +344,10 @@ const handleSubmitError = (code: number) => {
     1001: '服务器内部错误',
     1002: '验证码错误',
     1003: '权限验证失败',
-    1006: 'Token已过期',
     1008: '代码不符合规范',
     1012: '不存在的题目ID',
     1013: '不支持的语言类型'
   };
-  alert(errorMap[code] || `未知错误 (代码: ${code})`);
 };
 
 const Token = ref();
