@@ -30,8 +30,40 @@
 <section class="knowledge-graph-section">
   <div class="knowledge-graph-container">
     <h3 class="section-title">知识图谱</h3>
+    <div class="svg-container">
+      <img 
+        src="@/pictures/a.svg" 
+        alt="知识图谱" 
+        class="knowledge-graph-svg"
+        @click="openSvgViewer"
+      >
+    </div>
   </div>
 </section>
+
+<!-- SVG查看器模态窗口 -->
+<div class="modal-overlay" v-if="showSvgViewer" @click="closeSvgViewer"></div>
+<div class="svg-viewer-modal" v-if="showSvgViewer">
+  <div class="svg-viewer-content" 
+       @mousedown="startDrag"
+       @mousemove="onDrag"
+       @mouseup="stopDrag"
+       @mouseleave="stopDrag"
+       @wheel="onWheel"
+       ref="svgViewer"
+  >
+    <img 
+      src="@/pictures/b.svg" 
+      alt="知识图谱详情" 
+      class="svg-viewer-image"
+      :style="{
+        transform: `translate(-50%, -50%) translate(${dragOffset.x}px, ${dragOffset.y}px) scale(${scale})`
+      }"
+      @load="handleImageLoad"
+      ref="svgImage"
+    >
+  </div>
+</div>
     <br>
     <br>
     <section class="algorithm-section">
@@ -124,13 +156,13 @@
 <footer class="footer">
   <div class="footer-content">
     <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
-    <p>备案号：鲁ICP备2024065791号</p>
+    <a href="https://beian.miit.gov.cn/" target="_blank" class="beian-link">备案号：鲁ICP备2024065791号</a>
   </div>
 </footer>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import axios from 'axios'
 import { inject } from 'vue';
 import { RouterLink } from 'vue-router'
@@ -388,8 +420,7 @@ const problemSets = ref([
   { title: '几何算法', problems: [] },
   { title: '计算几何', problems: [] },
   { title: '高精度计算', problems: [] }
-
-])
+]);
 
 const modalVisible = ref(false)
 const currentProblemSet = ref({ title: '', problems: [] })
@@ -594,6 +625,104 @@ const getProblemSetClass = (title) => {
   
   return mapping[title] || 'default';
 };
+
+// SVG查看器相关状态
+const showSvgViewer = ref(false)
+const scale = ref(1)
+const dragOffset = ref({ x: 0, y: 0 })
+const isDragging = ref(false)
+const startPos = ref({ x: 0, y: 0 })
+const svgViewer = ref(null)
+const svgImage = ref(null)
+
+// 处理图片加载完成
+const handleImageLoad = (e) => {
+  const img = e.target
+  const container = img.parentElement
+  const containerWidth = container.clientWidth
+  const containerHeight = container.clientHeight
+  const imgWidth = img.naturalWidth
+  const imgHeight = img.naturalHeight
+  
+  // 计算合适的缩放比例，考虑到边距
+  const padding = 40 // 边距像素
+  const scaleX = (containerWidth - padding * 2) / imgWidth
+  const scaleY = (containerHeight - padding * 2) / imgHeight
+  scale.value = Math.min(scaleX, scaleY)
+  
+  // 重置拖拽位置
+  dragOffset.value = { x: 0, y: 0 }
+}
+
+// 打开SVG查看器
+const openSvgViewer = () => {
+  showSvgViewer.value = true
+  scale.value = 1
+  dragOffset.value = { x: 0, y: 0 }
+}
+
+// 关闭SVG查看器
+const closeSvgViewer = () => {
+  showSvgViewer.value = false
+}
+
+// 开始拖拽
+const startDrag = (e) => {
+  if (e.button === 0) { // 左键
+    isDragging.value = true
+    startPos.value = {
+      x: e.clientX,
+      y: e.clientY
+    }
+    e.preventDefault()
+  }
+}
+
+// 拖拽中
+const onDrag = (e) => {
+  if (isDragging.value) {
+    e.preventDefault()
+    const deltaX = e.clientX - startPos.value.x
+    const deltaY = e.clientY - startPos.value.y
+    
+    dragOffset.value = {
+      x: dragOffset.value.x + deltaX,
+      y: dragOffset.value.y + deltaY
+    }
+    
+    startPos.value = {
+      x: e.clientX,
+      y: e.clientY
+    }
+  }
+}
+
+// 停止拖拽
+const stopDrag = () => {
+  isDragging.value = false
+}
+
+// 滚轮缩放
+const onWheel = (e) => {
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? -0.1 : 0.1
+  const newScale = Math.max(0.1, Math.min(5, scale.value + delta))
+  
+  // 获取鼠标相对于图片中心的位置
+  const rect = svgImage.value.getBoundingClientRect()
+  const mouseX = e.clientX - (rect.left + rect.width / 2)
+  const mouseY = e.clientY - (rect.top + rect.height / 2)
+  
+  // 计算新的偏移量，使缩放以鼠标位置为中心
+  if (newScale !== scale.value) {
+    const scaleFactor = newScale / scale.value
+    dragOffset.value = {
+      x: dragOffset.value.x + mouseX * (1 - scaleFactor),
+      y: dragOffset.value.y + mouseY * (1 - scaleFactor)
+    }
+    scale.value = newScale
+  }
+}
 </script>
 
 <style scoped>
@@ -1804,5 +1933,84 @@ main {
 @keyframes bounce {
   0%, 100% { transform: translateY(-50%) scale(1); }
   50% { transform: translateY(-50%) scale(1.1); }
+}
+
+.svg-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.knowledge-graph-svg {
+  max-width: 100%;
+  height: auto;
+  background-color: transparent;
+}
+
+.svg-viewer-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  height: 90vh;
+  background-color: white;
+  border-radius: 20px;
+  overflow: hidden;
+  z-index: 1001;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.svg-viewer-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none; /* 防止文字选中 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  background-color: #f5f5f5;
+}
+
+.svg-viewer-content:active {
+  cursor: grabbing;
+}
+
+.svg-viewer-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  transition: transform 0.1s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+.beian-link {
+  color: #666;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.beian-link:hover {
+  color: #1890ff;
+}
+
+.knowledge-graph-svg {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.knowledge-graph-svg:hover {
+  transform: scale(1.05);
 }
 </style>
