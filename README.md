@@ -4,6 +4,8 @@
 └─src
     │  App.vue  根组件，存放导航栏信息
     │  main.ts    初始化vue
+    │  left.js
+    │  test.html
     │  
     ├─components
     │      forgetpwd.vue 密码重置
@@ -20,7 +22,8 @@
     │      
     ├─pictures
     │      logo.jpg  网站的logo
-    │      
+    │      a.svg
+    │      b.svg
     └─router
             index.ts 存放路由路径信息
 ```
@@ -101,27 +104,8 @@ const logout = () => {
 provide('updateUserInfo', updateUserInfo);
 provide('handleTokenExpired', handleTokenExpired);
 ```
-# 模块间接口
-
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
+# 安装配置说明
+## Compile and Hot-Reload for Development
 ```sh
 npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
 ```
