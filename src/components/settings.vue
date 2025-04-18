@@ -81,7 +81,7 @@
   </div>
   <footer class="footer">
     <div class="footer-content">
-      <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+      <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
       <p>备案号：鲁ICP备2024065791号</p>
     </div>
   </footer>

@@ -7,7 +7,7 @@ const app = express();
 // 如果用于生产环境，建议通过 CORS 限制仅允许你的域名访问
 const cors = require('cors');
 const corsOptions = {
- origin: 'https://webchatbot-sbit-xuyqjjfhim.cn-hangzhou.fcapp.run' // 允许访问的域名
+ origin: '*' // 允许访问的域名
 };
 app.use(cors(corsOptions));
 

@@ -38,7 +38,7 @@
   </div>
   <footer class="footer">
   <div class="footer-content">
-    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
     <p>备案号：鲁ICP备2024065791号</p>
   </div>
 </footer>
@@ -230,7 +230,7 @@ onMounted(() => {
   color: #666;
 }
 .clickable {
-  color: #43638c; /* 将字体颜色改为黑色 */
+  color: #3ca7dd; /* 将字体颜色改为黑色 */
   cursor: pointer;
   text-decoration: none; /* 去掉下划线 */
 }

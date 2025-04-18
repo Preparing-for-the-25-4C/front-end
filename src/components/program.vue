@@ -1,127 +1,155 @@
 <template>
   <div class="container">
-    <div class="header">
-      <div class="breadcrumb">
-        <span class="folder-icon">📝 </span>
-        <span>题库</span>
-      </div>
-      <div class="actions">
-        <select v-model="selectedLanguage" class="language-select">
-          <option v-for="lang in languages" :value="lang.id" :key="lang.id">
-            {{ lang.name }}
-          </option>
-        </select>
-        <button class="btn btn-primary" @click="runCode">运行</button>
-        <button class="btn" @click="handleSubmitCode">提交</button>
-      </div>
+    <div class="actions-container">
+      <SubmissionActions @submit="handleSubmitCode" />
     </div>
-    <main class="main-content">
-      <!-- 最左侧边栏 -->
-      <aside class="far-left-sidebar">
-        <div class="sidebar-section">
-          <h3 class="sidebar-title">提交记录</h3>
-          <ul class="submission-list">
-            <li
-              v-for="(submission, index) in submissionData"
-              :key="index"
-              class="submission-item"
-              @click="showSubmissionDetails(index)"
-            >
-              <span
-                :class="['status-indicator', `status-${getStatusClass(submission.status)}`]"
-              ></span>
-              <div class="submission-meta">
-                <span class="problem-name">{{ submission.probName }}</span>
-                <span class="status">{{ submission.status }}</span>
-                <span class="time">{{ submission.recordTime }}</span>
-              </div>
-            </li>
-          </ul>
-          <div class="pagination">
-            <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
-            <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
-            <button @click="nextPage" :disabled="submissionData.length < pageSize">下一页</button>
-          </div>
-        </div>
-      </aside>
 
-      <!-- 中间题目描述 -->
-      <div class="problem-description-panel">
+    <main class="main-content">
+      <!-- 左侧题目描述 -->
+      <div class="problem-description-panel" ref="descriptionPanel">
         <article class="problem-container">
           <header class="problem-header">
             <h1 class="problem-title">{{ problemInfo.id }}. {{ problemInfo.title }}</h1>
-            <div class="problem-meta">{{ problemInfo.difficulty }}</div>
+            <div class="problem-meta">
+              <span class="difficulty-box">{{ problemInfo.difficulty }}</span>
+              <span class="score">分数 {{ problemInfo.score || 5 }}</span>
+            </div>
+            <div class="problem-info">
+              <span>作者 {{ problemInfo.author || '陈越' }}</span>
+              <span>单位 {{ problemInfo.unit || '浙江大学' }}</span>
+            </div>
           </header>
 
           <section class="problem-content">
             <div v-html="problemDetails.description"></div>
+            <h3>输入格式:</h3>
+            <div class="format-box">{{ problemData.输入格式 || '无' }}</div>
+            <h3>输出格式:</h3>
+            <div class="format-box">{{ problemData.输出格式 || '无' }}</div>
+            <h3>输入样例:</h3>
+            <div class="sample-box">{{ problemData.样例?.输入 || '无' }}</div>
+            <h3>输出样例:</h3>
+            <div class="sample-box">{{ problemData.样例?.输出 || '无' }}</div>
           </section>
 
-          <dl class="spec-list">
-            <div class="spec-item">
-              <dt class="spec-label">代码长度限制</dt>
-              <dd>16 KB</dd>
+          <section class="limits-section">
+            <div class="limit-grid">
+              <div class="limit-item">
+                <span class="limit-label">代码长度限制</span>
+                <span class="limit-value">16 KB</span>
+              </div>
+              <div class="limit-item">
+                <span class="limit-label">时间限制</span>
+                <span class="limit-value">400 ms</span>
+              </div>
+              <div class="limit-item">
+                <span class="limit-label">内存限制</span>
+                <span class="limit-value">64 MB</span>
+              </div>
+              <div class="limit-item">
+                <span class="limit-label">栈限制</span>
+                <span class="limit-value">8192 KB</span>
+              </div>
             </div>
-            <div class="spec-item">
-              <dt class="spec-label">时间限制</dt>
-              <dd>400 ms</dd>
-            </div>
-            <div class="spec-item">
-              <dt class="spec-label">内存限制</dt>
-              <dd>64 MB</dd>
-            </div>
-            <div class="spec-item">
-              <dt class="spec-label">栈限制</dt>
-              <dd>8192 KB</dd>
-            </div>
-          </dl>
+          </section>
         </article>
-
-        <!-- 提交详情覆盖层 -->
-        <div :class="['submission-details', { active: isSubmissionDetailsActive }]">
-          <span class="close-details" @click="closeSubmissionDetails">&times;</span>
-          <h2>提交详情</h2>
-          <div class="submission-info">
-            <p>状态: <span>{{ activeSubmission.status }}</span></p>
-            <p>语言: <span>{{ activeSubmission.language }}</span></p>
-            <p>执行用时: <span>{{ activeSubmission.time }}</span></p>
-          </div>
-          <h3>提交的代码：</h3>
-          <pre>{{ activeSubmission.code }}</pre>
-          <div v-if="activeSubmission.compileError" class="compile-error">
-            <h3>编译错误：</h3>
-            <pre>{{ activeSubmission.compileError }}</pre>
-          </div>
-        </div>
       </div>
 
-      <!-- 右侧代码编辑区域 -->
-      <div class="code-panel">
-        <textarea class="code-editor" v-model="code" placeholder="在这里编写代码..."></textarea>
-        
-        <!-- 添加控制按钮 -->
-        <div class="io-control">
-          <button @click="toggleIO" class="btn-toggle">
-            {{ showInputOutput ? '隐藏输入输出' : '显示输入输出' }}
-            <i :class="['arrow', showInputOutput ? 'down' : 'up']"></i>
-          </button>
-        </div>
+      <!-- 可拖动分割线 -->
+      <div class="splitter" ref="splitter"></div>
 
-        <!-- 包裹输入输出容器 -->
-        <div class="output-panel" v-show="showInputOutput">
-          <div class="panel-content">
-            <div class="input-output-container">
-              <div class="input-section">
-                <h3>输入数据</h3>
-                <textarea v-model="stdIn" class="input-box" placeholder="请输入运行时的输入数据..."></textarea>
+      <!-- 右侧代码编辑器和测试用例区域 -->
+      <div class="code-panel" ref="codePanel">
+        <div class="editor-section">
+          <div class="editor-toolbar">
+            <div class="toolbar-left">
+              <select v-model="selectedLanguage" class="language-select" @change="handleLanguageChange">
+                <option v-for="lang in languages" :value="lang.id" :key="lang.id">
+                  {{ lang.name }}
+                </option>
+              </select>
+            </div>
+            <div class="toolbar-right">
+              <button class="icon-button" @click="toggleSettingsPanel" title="设置">
+                <i class="fas fa-cog"></i>
+              </button>
+              <button class="icon-button" @click="toggleFullscreen" title="全屏">
+                <i class="fas fa-expand"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings Panel -->
+          <div v-if="showSettingsPanel" class="settings-panel-overlay">
+            <div class="settings-panel">
+              <h3>编辑器设置</h3>
+              <div class="settings-item">
+                <label>字号</label>
+                <input type="number" v-model.number="tempFontSize" min="8" max="32" /> px
               </div>
-              <div class="output-section">
-                <h3>运行结果</h3>
-                <pre class="output-box">{{ stdOut }}</pre>
+              <div class="settings-item">
+                <label>Tab长度</label>
+                <select v-model.number="tempTabSize">
+                  <option value="2">2个空格</option>
+                  <option value="4">4个空格</option>
+                  <option value="8">8个空格</option>
+                </select>
+              </div>
+              <div class="settings-item">
+                <label>主题</label>
+                <select v-model="tempTheme">
+                  <option value="vs">Light (vs)</option>
+                  <option value="vs-dark">Dark (vs-dark)</option>
+                  <option value="hc-black">High Contrast (hc-black)</option>
+                </select>
+              </div>
+              <div class="settings-item">
+                <label>键位绑定</label>
+                <select v-model="tempKeybinding">
+                  <option value="default">默认</option>
+                  <!-- Add other keybindings if needed -->
+                </select>
+              </div>
+              <div class="settings-item checkbox-item">
+                <label>
+                  <input type="checkbox" v-model="tempShowWhitespace" />
+                  显示空白字符
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button @click="cancelSettings">取消</button>
+                <button @click="applySettings">确认</button>
               </div>
             </div>
-            <div class="panel-actions">
-              <button class="btn" @click="clearOutput">清空</button>
+          </div>
+
+          <div class="editor-wrapper">
+            <div ref="editorContainer" class="monaco-editor"></div>
+          </div>
+        </div>
+
+        <!-- 测试用例面板 -->
+        <div class="testcase-panel" :class="{ 'collapsed': !showTestCase }">
+          <div class="testcase-header" @click="toggleTestCase">
+            <span>测试用例</span>
+            <button class="toggle-button">
+              {{ showTestCase ? '▼' : '▲' }}
+            </button>
+          </div>
+          <div v-show="showTestCase" class="testcase-content">
+            <div class="testcase-input">
+              <h4>输入</h4>
+              <textarea v-model="stdIn" placeholder="请输入测试数据..."></textarea>
+            </div>
+            <div class="testcase-output">
+              <h4>输出</h4>
+              <pre>{{ stdOut }}</pre>
+            </div>
+            <div class="testcase-actions">
+              <button class="reset-button" @click="resetTestCase">重置测试用例</button>
+              <button class="run-button" @click="runCode">
+                <i class="fas fa-play"></i> 运行测试
+              </button>
             </div>
           </div>
         </div>
@@ -130,27 +158,31 @@
   </div>
 </template>
 
-
 <script lang="ts" setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import * as monaco from 'monaco-editor';
 import router from '@/router';
-const showInputOutput = ref(true);
+import SubmissionActions from './SubmissionActions.vue';
 
-// 添加切换方法
-const toggleIO = () => {
-  showInputOutput.value = !showInputOutput.value;
-};
+const showInputOutput = ref(false);
 const selectedStatus = ref('');
 const currentPage = ref(1);
 const totalPages = ref(1);
 const pageSize = 5;
-const stdIn = ref(''); // 输入数据
-const stdOut = ref(''); // 输出结果
-const code = ref(''); // 用户编写的代码
-const selectedLanguage = ref(71); // 默认语言 ID
+const stdIn = ref('');
+const stdOut = ref('');
+const code = ref('');
+const fontSize = ref(14);
+const tabSize = ref(4);
+const theme = ref('vs-dark');
+const showWhitespace = ref(false);
+const showSettingsPanel = ref(false);
+const showHelp = ref(false);
+const editorContainer = ref(null);
+let editor = null;
+
 interface SubmissionRecord {
   probName: string;
   status: string;
@@ -158,42 +190,143 @@ interface SubmissionRecord {
   time: string;
   code: string;
   recordTime: string;
-  compileError?: string; // 新增字段，用于存储编译错误
+  compileError?: string;
 }
+
+const toggleInputOutput = () => {
+  showInputOutput.value = !showInputOutput.value;
+};
+
+const togglePanel = (panel) => {
+  if (panel === 'help') {
+    showHelp.value = !showHelp.value;
+    showSettingsPanel.value = false;
+  } else if (panel === 'settings') {
+    showSettingsPanel.value = !showSettingsPanel.value;
+    showHelp.value = false;
+  }
+};
+
+const languageInfo = {
+  c: { name: 'C', compiler: 'gcc', version: '9.2.0', example: 'int main() { return 0; }' },
+  cpp: { name: 'C++', compiler: 'gcc', version: '9.2.0', example: 'int main() { return 0; }' },
+  java: { name: 'Java', compiler: 'openJDK', version: '13.0.1', example: 'public class Main { public static void main(String[] args) { } }' },
+  javascript: { name: 'JavaScript', compiler: 'node.js', version: '12.14.0', example: 'console.log("Hello, World!");' },
+  python: { name: 'Python', compiler: 'python3', version: '3.8.1', example: 'print("Hello, World!")' },
+};
+
+const descriptionPanel = ref<HTMLElement | null>(null);
+const codePanel = ref<HTMLElement | null>(null);
+const splitter = ref<HTMLElement | null>(null);
+
+onMounted(() => {
+  editor = monaco.editor.create(editorContainer.value, {
+    value: languageInfo[language.value].example,
+    language: language.value,
+    theme: theme.value,
+    fontSize: fontSize.value,
+    tabSize: tabSize.value,
+    renderWhitespace: showWhitespace.value ? 'all' : 'none',
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    wordWrap: 'on',
+    lineNumbers: 'on',
+    glyphMargin: false,
+    folding: true,
+    lineDecorationsWidth: 0,
+    lineNumbersMinChars: 3,
+  });
+
+  editor.onDidChangeModelContent(() => {
+    code.value = editor.getValue();
+  });
+
+  setupSplitter();
+  fetchProblemDetails();
+
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+});
+
+const handleLanguageChange = () => {
+  const langObj = languages.value.find(l => l.id === selectedLanguage.value);
+  if (langObj) {
+    language.value = langObj.editorLang;
+    updateEditorLanguage();
+  }
+};
+
+// 修改更新编辑器语言方法
+const updateEditorLanguage = () => {
+  if (editor) {
+    monaco.editor.setModelLanguage(editor.getModel(), language.value);
+    editor.setValue(languageInfo[language.value].example);
+  }
+};
+const updateEditorTheme = () => {
+  if (editor) {
+    monaco.editor.setTheme(theme.value);
+  }
+};
+
+const updateWhitespace = () => {
+  if (editor) {
+    editor.updateOptions({ renderWhitespace: showWhitespace.value ? 'all' : 'none' });
+  }
+};
+
+watch(fontSize, (newValue) => {
+  if (editor) {
+    editor.updateOptions({ fontSize: newValue });
+  }
+});
+
+watch(tabSize, (newValue) => {
+  if (editor) {
+    editor.updateOptions({ tabSize: newValue });
+  }
+});
 
 const submissionData = reactive<SubmissionRecord[]>([]);
 
 const fetchSubmissionRecords = async (page: number) => {
-try {
-  const response = await axios.get(`/api/getRecord/${pageSize}/${page}`, {
-    headers: { 'Token': Token.value },
-    params: {
-      probName: problemInfo.title || null,
-      languageId: selectedLanguage.value || null,
-      status: selectedStatus.value === 'Accepted' ? 'Accepted' : 'No Accepted'
-    }
-  });
+  try {
+    const response = await axios.get(`/api/getRecord/${pageSize}/${page}`, {
+      headers: { 'Token': Token.value },
+      params: {
+        probName: problemInfo.title || null,
+        languageId: selectedLanguage.value || null,
+        status: selectedStatus.value === 'Accepted' ? 'Accepted' : 'No Accepted'
+      }
+    });
 
-  if (response.data.errCode === 1000) {
-    submissionData.splice(0, submissionData.length, 
+    if (response.data.errCode === 1000) {
+      submissionData.splice(
+        0,
+        submissionData.length,
         ...response.data.data.map((record: any) => ({
           probName: record.probName,
           status: record.status,
           language: record.language,
           time: `${record.wallTime}ms`,
-          code: decodeURIComponent(escape(atob(record.codeOnBase64.replace(/-/g, '+').replace(/_/g, '/')))),
-          recordTime: record.recordTime
+          code: decodeURIComponent(
+            escape(
+              atob(record.codeOnBase64.replace(/-/g, '+').replace(/_/g, '/'))
+            )
+          ),
+          recordTime: record.recordTime,
         }))
       );
       totalPages.value = response.data.data.length < pageSize ? currentPage.value : currentPage.value + 1;
-  } else {
-    handleSubmitError(response.data.errCode);
+    } else {
+      handleSubmitError(response.data.errCode);
+    }
+  } catch (error) {
+    console.error('请求提交记录失败:', error);
+    alert('请求提交记录失败，请检查网络或服务器状态');
   }
-} catch (error) {
-  console.error('请求提交记录失败:', error);
-  alert('请求提交记录失败，请检查网络或服务器状态');
-}
 };
+
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -209,12 +342,16 @@ const nextPage = () => {
 };
 
 const languages = ref([
-  { id: 50, name: 'C (GCC 9.2.0)' },
-  { id: 54, name: 'C++ (GCC 9.2.0)' },
-  { id: 62, name: 'Java (OpenJDK 13.0.1)' },
-  { id: 63, name: 'JavaScript (Node.js 12.14.0)' },
-  { id: 71, name: 'Python (3.8.1)' }
+  { id: 50, name: 'C (GCC 9.2.0)', editorLang: 'c' },
+  { id: 54, name: 'C++ (GCC 9.2.0)', editorLang: 'cpp' },
+  { id: 62, name: 'Java (OpenJDK 13.0.1)', editorLang: 'java' },
+  { id: 63, name: 'JavaScript (Node.js 12.14.0)', editorLang: 'javascript' },
+  { id: 71, name: 'Python (3.8.1)', editorLang: 'python' }
 ]);
+
+// 默认选择Java
+const selectedLanguage = ref(62);
+const language = ref('java');
 
 const handleSubmitCode = async () => {
   if (!code.value.trim()) {
@@ -227,7 +364,7 @@ const handleSubmitCode = async () => {
       '/api/submit',
       {
         sourceCode: code.value,
-        languageId: selectedLanguage.value,
+        languageId:selectedLanguage.value,
         probId: route.query.id,
       },
       {
@@ -238,21 +375,20 @@ const handleSubmitCode = async () => {
     if (response.data.errCode === 1000) {
       const judgeToken = response.data.data;
 
-      // 设置 activeSubmission 数据
       Object.assign(activeSubmission, {
         status: '评测中',
         language: languages.value.find((lang) => lang.id === selectedLanguage.value)?.name || '未知语言',
         time: '--',
         code: code.value,
         recordTime: new Date().toLocaleString(),
-        compileError: '', // 清空编译错误
+        compileError: '',
       });
 
-      // 激活提交详情页面
       isSubmissionDetailsActive.value = true;
-
-      // 开始轮询获取评测结果
       startPolling(judgeToken);
+      
+      // 提交后刷新提交记录
+      fetchSubmissionRecords(currentPage.value);
     } else {
       handleSubmitError(response.data.errCode);
     }
@@ -271,16 +407,16 @@ const getStatusClass = (status: string) => {
 };
 
 onMounted(async () => {
-if (route.query.id) {
-  await fetchProblemDetails();
-  currentPage.value = 1; // 确保从第一页开始
-  fetchSubmissionRecords(1); // 加载第一页数据
-}
+  if (route.query.id) {
+    await fetchProblemDetails();
+    currentPage.value = 1;
+    fetchSubmissionRecords(1);
+  }
 });
 
 const pollingInterval = ref<ReturnType<typeof setInterval>>();
-  const startPolling = (judgeToken: string) => {
-  stopPolling(); // 先停止已有轮询
+const startPolling = (judgeToken: string) => {
+  stopPolling();
   pollingInterval.value = setInterval(async () => {
     try {
       const response = await axios.get(`/api/getSubmitRes/${judgeToken}`, {
@@ -290,21 +426,18 @@ const pollingInterval = ref<ReturnType<typeof setInterval>>();
       if (response.data.errCode === 1000) {
         const result = response.data.data;
 
-        // 检查是否存在编译错误
         if (result.judgeStatus === 'Compilation Error') {
           const compileError = result.compileOutput?.trim() || '编译错误信息为空';
 
-          // 更新 activeSubmission 数据
           Object.assign(activeSubmission, {
             status: '编译错误',
             compileError: compileError,
           });
 
-          stopPolling(); // 停止轮询
+          stopPolling();
           return;
         }
 
-        // 如果评测状态不是 "Judging"，更新 activeSubmission 数据
         if (result.judgeStatus !== 'Judging') {
           Object.assign(activeSubmission, {
             status: result.judgeStatus,
@@ -312,7 +445,9 @@ const pollingInterval = ref<ReturnType<typeof setInterval>>();
             memory: `${result.memory} KB`,
           });
 
-          stopPolling(); // 停止轮询
+          stopPolling();
+          // 更新提交记录
+          fetchSubmissionRecords(currentPage.value);
         }
       }
     } catch (error) {
@@ -320,7 +455,7 @@ const pollingInterval = ref<ReturnType<typeof setInterval>>();
       console.error('获取评测结果失败:', error);
       alert('获取评测结果失败，请检查网络或服务器状态');
     }
-  }, 1000); // 每 1 秒轮询一次
+  }, 1000);
 };
 
 const stopPolling = () => {
@@ -339,6 +474,7 @@ const showResultPopup = (result: any) => {
 
 onUnmounted(() => {
   stopPolling();
+  removeSplitterListeners(); // 移除分割线监听器
 });
 
 const handleSubmitError = (code: number) => {
@@ -350,6 +486,7 @@ const handleSubmitError = (code: number) => {
     1012: '不存在的题目ID',
     1013: '不支持的语言类型'
   };
+  alert(errorMap[code] || '未知错误');
 };
 
 const Token = ref();
@@ -363,60 +500,6 @@ const problemInfo = reactive({
   difficulty: route.query.difficulty || '简单'
 });
 
-onMounted(() => {
-  Object.assign(problemInfo, {
-    id: route.query.id || '001',
-    title: route.query.title || 'hello world',
-    difficulty: route.query.difficulty || '简单'
-  });
-});
-
-const fetchProblemDetails = async () => {
-  const response = await axios.get(`/api/getProbContent/${route.query.id}`, {
-    headers: { 'Token': Token.value }
-  });
-
-  if (response.data.errCode === 1000) {
-    const extractedData = extractJsonItems(response.data.data);
-    problemDetails.description = extractedData;
-  } else {
-    if (response.data.errCode === 1001) {
-            alert('请先登录！');
-            router.push('/login'); // 重定向到登录页面
-        }
-        if (response.data.errCode === 1002) {
-            alert('验证码错误');
-        }
-        if (response.data.errCode === 1003) {
-            alert('用户名或密码错误'); 
-        }
-        if(response.data.errCode === 1004){
-            alert('幂等性错误'); 
-        }
-        if(response.data.errCode === 1005){
-            alert('用户名已存在');
-        }
-        if(response.data.errCode === 1006){
-            alert('请先登录！');
-            router.push('/login'); // 重定向到登录页面
-        }
-        if(response.data.errCode === 1007){
-            alert('邮箱验证码错误'); 
-        }
-        if(response.data.errCode === 1008){
-            alert('数据不符合规范'); 
-        }
-        if(response.data.errCode === 1009){
-            alert('邮箱已被使用'); 
-        }
-        if(response.data.errCode === 1010){
-            alert('手机号已被使用'); 
-        }
-        if(response.data.errCode === 1011){
-            alert('不存在的静态资源'); 
-        }
-  }
-};
 const isSubmissionDetailsActive = ref(false);
 const activeSubmission = reactive({
   status: '',
@@ -424,21 +507,23 @@ const activeSubmission = reactive({
   time: '',
   memory: '',
   code: '',
-  compileError: '' // Add compileError property
+  compileError: ''
 });
+
 const runCode = async () => {
   if (!code.value.trim()) {
     alert('代码不能为空');
     return;
   }
 
-  let retryCount = 0; // 当前重试次数
-  const maxRetries = 5; // 最大重试次数
-  const retryDelay = 1000; // 每次重试的间隔时间（毫秒）
+  showInputOutput.value = true; // 显示输入输出面板
+
+  let retryCount = 0;
+  const maxRetries = 5;
+  const retryDelay = 1000;
 
   while (retryCount < maxRetries) {
     try {
-      // 调用 /api/runCode 接口
       const response = await axios.post(
         '/api/runCode',
         {
@@ -448,59 +533,25 @@ const runCode = async () => {
         },
         {
           headers: {
-            'Token': Token.value, // 添加 Token 到请求头
+            'Token': Token.value,
           },
         }
       );
 
       if (response.data.errCode === 1000) {
-        const runToken = response.data.data; // 获取 runToken
-        await fetchRunResult(runToken); // 获取运行结果
-        return; // 成功获取 runToken 后退出循环
+        const runToken = response.data.data;
+        await fetchRunResult(runToken);
+        return;
       } else {
-        if (response.data.errCode === 1001) {
-            alert('内部服务器错误，请稍后重试！');
-            router.push('/login'); // 重定向到登录页面
-        }
-        if (response.data.errCode === 1002) {
-            alert('验证码错误');
-        }
-        if (response.data.errCode === 1003) {
-            alert('用户名或密码错误'); 
-        }
-        if(response.data.errCode === 1004){
-            alert('幂等性错误'); 
-        }
-        if(response.data.errCode === 1005){
-            alert('用户名已存在');
-        }
-        if(response.data.errCode === 1006){
-            alert('请先登录！');
-            router.push('/login'); // 重定向到登录页面
-        }
-        if(response.data.errCode === 1007){
-            alert('邮箱验证码错误'); 
-        }
-        if(response.data.errCode === 1008){
-            alert('数据不符合规范'); 
-        }
-        if(response.data.errCode === 1009){
-            alert('邮箱已被使用'); 
-        }
-        if(response.data.errCode === 1010){
-            alert('手机号已被使用'); 
-        }
-        if(response.data.errCode === 1011){
-            alert('不存在的静态资源'); 
-        }
-        return; // 如果接口返回错误码，直接退出
+        handleSubmitError(response.data.errCode);
+        return;
       }
     } catch (error) {
       console.error('获取 runToken 失败:', error);
       retryCount++;
       if (retryCount < maxRetries) {
         console.log(`重试第 ${retryCount} 次...`);
-        await new Promise((resolve) => setTimeout(resolve, retryDelay)); // 等待一段时间后重试
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       } else {
         alert('获取 runToken 失败，请稍后重试');
         return;
@@ -508,36 +559,59 @@ const runCode = async () => {
     }
   }
 };
+
 const clearOutput = () => {
-  stdOut.value = ''; // 清空运行结果
+  stdOut.value = '';
+  stdIn.value = '';
 };
 
 const fetchRunResult = async (runToken: any) => {
-    // 调用 /api/getRunRes/{runToken} 接口
+  try {
     const response = await axios.get(`/api/getRunRes/${runToken}`, {
       headers: {
-        'Token': Token.value, // 添加 Token 到请求头
+        'Token': Token.value,
       },
     });
 
     if (response.data.errCode === 1000) {
-      // 解码 Base64 编码的 stdOut
       if (response.data.data.stdOut) {
         const decodedOutput = atob(response.data.data.stdOut.trim());
-        stdOut.value = decodedOutput; // 设置运行结果
+        stdOut.value = decodedOutput;
       } else {
-        console.error('stdOut is null or undefined');
         stdOut.value = '运行结果为空';
       }
-    } 
-    if (response.data.errCode === 1016) {
+    } else if (response.data.errCode === 1016) {
       stdOut.value = '代码正在运行中，请稍后...';
-    }
-    if (response.data.data && response.data.data.compileOutput) {
-      // 如果存在编译错误，显示 compileOutput
+      // 1秒后再次尝试获取结果
+      setTimeout(() => fetchRunResult(runToken), 1000);
+    } 
+     if (response.data.data && response.data.data.compileOutput) {
       const compileError = atob(response.data.data.compileOutput.trim());
       stdOut.value = `编译错误:\n${compileError}`;
-    } 
+    }
+  } catch (error) {
+    console.error('获取运行结果失败:', error);
+    stdOut.value = '获取运行结果失败，请重试';
+  }
+};
+
+const fetchProblemDetails = async () => {
+  try {
+    const response = await axios.get(`/api/getProbContent/${route.query.id}`, {
+      headers: { 'Token': Token.value }
+    });
+
+    if (response.data.errCode === 1000) {
+      const data = JSON.parse(response.data.data);
+      Object.assign(problemData, data);
+      problemDetails.description = data.说明;
+    } else {
+      handleSubmitError(response.data.errCode);
+    }
+  } catch (error) {
+    console.error('获取题目详情失败:', error);
+    alert('获取题目详情失败，请检查网络或服务器状态');
+  }
 };
 
 function showSubmissionDetails(submissionId: number) {
@@ -553,552 +627,441 @@ function closeSubmissionDetails() {
 }
 
 function extractJsonItems(jsonStr) {
-    const parsedData = JSON.parse(jsonStr);
-    const result = [];
+  const parsedData = JSON.parse(jsonStr);
+  const result = [];
 
-    // 递归遍历所有层级的值
-    function traverse(obj) {
-        if (Array.isArray(obj)) {
-            // 数组：遍历所有元素
-            obj.forEach(item => traverse(item));
-        } else if (typeof obj === 'object' && obj !== null) {
-            // 对象：遍历所有属性值
-            Object.values(obj).forEach(value => traverse(value));
-        } else {
-            // 基本类型：直接存入结果
-            result.push(JSON.stringify(obj));
-        }
+  function traverse(obj) {
+    if (Array.isArray(obj)) {
+      obj.forEach(item => traverse(item));
+    } else if (typeof obj === 'object' && obj !== null) {
+      Object.values(obj).forEach(value => traverse(value));
+    } else {
+      result.push(JSON.stringify(obj));
     }
+  }
 
-    traverse(parsedData);
-    return result.join('\n');
+  traverse(parsedData);
+  return result.join('\n');
 }
+
+// 添加 problemData 数据
+const problemData = reactive({
+  说明: '',
+  输入格式: '',
+  输出格式: '',
+  样例: {
+    输入: '',
+    输出: ''
+  }
+});
+
+// --- 分割线拖动逻辑 --- 
+let isDragging = false;
+let startX = 0;
+let startWidthDescription = 0;
+
+const setupSplitter = () => {
+  if (!splitter.value || !descriptionPanel.value || !codePanel.value) return;
+
+  splitter.value.addEventListener('mousedown', onMouseDown);
+};
+
+const onMouseDown = (e: MouseEvent) => {
+  isDragging = true;
+  startX = e.clientX;
+  startWidthDescription = descriptionPanel.value!.offsetWidth;
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  // 添加样式以防止拖动时选中文本
+  document.body.style.userSelect = 'none'; 
+  document.body.style.cursor = 'col-resize';
+};
+
+const onMouseMove = (e: MouseEvent) => {
+  if (!isDragging || !descriptionPanel.value || !codePanel.value) return;
+
+  const dx = e.clientX - startX;
+  const newWidthDescription = startWidthDescription + dx;
+  const containerWidth = descriptionPanel.value.parentElement!.offsetWidth;
+  const splitterWidth = splitter.value!.offsetWidth;
+
+  // 添加最小宽度限制
+  const minWidth = 150; 
+  const maxWidthDescription = containerWidth - splitterWidth - minWidth;
+
+  if (newWidthDescription > minWidth && newWidthDescription < maxWidthDescription) {
+    descriptionPanel.value.style.width = `${newWidthDescription}px`;
+    // codePanel 的宽度会自动调整 (flex: 1)
+  } 
+};
+
+const onMouseUp = () => {
+  if (isDragging) {
+    isDragging = false;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    // 恢复默认样式
+    document.body.style.userSelect = ''; 
+    document.body.style.cursor = '';
+  }
+};
+
+const removeSplitterListeners = () => {
+  if (splitter.value) {
+    splitter.value.removeEventListener('mousedown', onMouseDown);
+  }
+  // 确保在组件卸载时移除 document 上的监听器
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+};
+
+// --- 结束分割线逻辑 ---
+
+// 添加新的响应式变量
+const showTestCase = ref(false);
+const isFullscreen = ref(false);
+
+// 切换测试用例面板
+const toggleTestCase = () => {
+  showTestCase.value = !showTestCase.value;
+};
+
+// 重置测试用例
+const resetTestCase = () => {
+  stdIn.value = '';
+  stdOut.value = '';
+};
+
+// 切换全屏模式
+const toggleFullscreen = () => {
+  const element = document.documentElement;
+  if (!isFullscreen.value) {
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+  isFullscreen.value = !isFullscreen.value;
+};
+
+// 监听全屏变化
+onMounted(() => {
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen.value = !!document.fullscreenElement;
+  });
+});
+
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', () => {});
+});
+
+// --- Settings Panel Logic --- 
+const tempFontSize = ref(fontSize.value);
+const tempTabSize = ref(tabSize.value);
+const tempTheme = ref(theme.value);
+const tempShowWhitespace = ref(showWhitespace.value);
+const tempKeybinding = ref('default');
+
+const toggleSettingsPanel = () => {
+  if (!showSettingsPanel.value) {
+    // Sync temps with current values when opening
+    tempFontSize.value = fontSize.value;
+    tempTabSize.value = tabSize.value;
+    tempTheme.value = theme.value;
+    tempShowWhitespace.value = showWhitespace.value;
+    tempKeybinding.value = keybinding.value;
+  }
+  showSettingsPanel.value = !showSettingsPanel.value;
+};
+
+const applySettings = () => {
+  fontSize.value = tempFontSize.value;
+  tabSize.value = tempTabSize.value;
+  theme.value = tempTheme.value;
+  showWhitespace.value = tempShowWhitespace.value;
+  keybinding.value = tempKeybinding.value;
+  // Apply changes to the editor
+  if (editor) {
+    editor.updateOptions({
+      fontSize: fontSize.value,
+      tabSize: tabSize.value,
+      renderWhitespace: showWhitespace.value ? 'all' : 'none',
+      // Add keybinding update if needed
+    });
+    monaco.editor.setTheme(theme.value);
+  }
+  showSettingsPanel.value = false;
+};
+
+const cancelSettings = () => {
+  showSettingsPanel.value = false;
+  // Temps will reset next time panel is opened
+};
+
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement;
+};
 </script>
+
 <style scoped>
-:root {
-  --color-primary: hsl(212, 89%, 53%);
-  --text-black: hsl(0, 0%, 0%);
-  --bg-light: hsl(211, 20%, 97%);
-  --text-light: hsl(0, 0%, 45%);
-  --border-color: rgba(0, 0, 0, 0.06);
-  --font-sans: system-ui, -apple-system, sans-serif;
-  --font-mono: 'Courier New', monospace;
-  --space-unit: 1rem;
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f5f5;
+  overflow: hidden; /* 严格禁止容器滚动 */
+}
+
+.actions-container {
+  position: absolute;
+  top: 10px; /* 微调位置 */
+  right: 20px;
+  height: 40px; /* 给按钮容器一个明确高度 */
+  display: flex;
+  align-items: center; /* 垂直居中按钮 */
+  gap: 12px;
+  z-index: 10;
+}
+
+.main-content {
+  display: flex;
+  flex: 1; /* 占据剩余所有空间 */
+  overflow: hidden; /* 禁止主内容区滚动 */
+  position: relative;
+  padding-top: 60px; /* 为顶部的 actions-container 留出足够空间 */
+  margin-top: -60px; /* 将内容拉回，填补因 padding 产生的空白 */
 }
 
 .problem-description-panel {
   width: 40%;
+  background-color: white;
+  overflow-y: auto; /* 允许此面板内部滚动 */
   padding: 20px;
-  border-right: 1px solid #eee;
-  overflow-y: auto;
-  position: relative;
-}
-
-.problem-container {
-  padding: var(--space-unit) calc(var(--space-unit) * 1.5);
-  max-width: 800px;
-  margin: 0 auto;
-  font-family: var(--font-sans);
+  padding-top: 70px; /* 确保内容从按钮下方开始 */
+  margin-top: -60px; /* 补偿 main-content 的负 margin */
+  border-right: 1px solid #e0e0e0;
 }
 
 .problem-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: var(--space-unit);
+  margin-bottom: 24px;
 }
 
 .problem-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-black);
-}
-
-.problem-meta {
-  background: var(--bg-light);
-  padding: 0.5rem 1rem;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-}
-
-.problem-content {
-  margin: var(--space-unit) 0;
-  line-height: 1.6;
-}
-
-.code-block {
-  background: var(--bg-light);
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-  position: relative;
-}
-
-.code-tools {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.spec-list {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: var(--space-unit);
-}
-
-.spec-item {
-  display: flex;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.spec-label {
-  width: 120px;
-  color: var(--text-light);
-}
-
-@media (max-width: 768px) {
-  .problem-container {
-    padding: 0.75rem;
-  }
-  
-  .toolbar {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.language-select {
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-right: 8px;  /* 增加与运行按钮的间距 */
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  height: 32px;       /* 与按钮高度保持一致 */
-}
-.btn {
-  height: 32px;       /* 统一按钮高度 */
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-}
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f5f5f5;
-  padding: 20px;
-  color: #333;
-}
-.language-select {
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-right: 8px;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-}
-/* 添加控制按钮样式 */
-.btn-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin: 12px 0;
-}
-
-.btn-toggle:hover {
-  background: #e0e0e0;
-}
-.arrow {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-}
-
-.arrow.down {
-  border-top: 5px solid #666;
-}
-
-.arrow.up {
-  border-bottom: 5px solid #666;
-}
-
-/* 调整输入输出容器动画 */
-.output-panel {
-  transition: all 0.3s ease;
-}
-.code-panel:has(.output-panel:not([style*="display: none"])) {
-  padding-bottom: 24px;
-}
-
-/* 保持原有输入输出样式 */
-.input-output-container {
-  /* 保持之前修改的样式 */
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-top: 16px;
-}
-
-.input-box, .output-box {
-  /* 保持之前的高度和样式 */
-  height: 200px;
-}
-.container {
-  max-width: 1600px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  min-height: calc(100vh - 40px);
-  display: flex;
-  flex-direction: column;
-}
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-top: 1px solid #eee;
-}
-.pagination button {
-  padding: 4px 8px;
-  border: 1px solid #1890ff;
-  border-radius: 4px;
-  background: #e6f7ff;
-  color: #1890ff;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 12px;
-}
-.output-section h3 {
-  margin-bottom: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-}
-.pagination button:disabled {
-  border-color: #ddd;
-  background: #f5f5f5;
-  color: #999;
-  cursor: not-allowed;
-}
-.submission-meta {
-  display: flex;
-  flex-direction: column;
-  margin-left: 8px;
-}
-.status {
-  font-size: 12px;
-  color: #666;
-}
-
-.time {
-  font-size: 12px;
-  color: #999;
-}
-
-.status-judging {
-  background-color: #faad14;
-}
-.problem-name {
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-.pagination span {
-  font-size: 12px;
-  color: #666;
-}
-/* 头部导航 */
-.header {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #666;
-}
-
-.folder-icon {
-  color: #999;
-}
-
-.actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-}
-.btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  background: white;
-}
-
-.btn-primary {
-  background-color: #add1f3;
-  color: white;
-  border-color: #add1f3;
-}
-
-.btn-primary:hover {
-  background-color: #add1f3;
-}
-
-.btn:hover {
-  background-color: #f0f0f0;
-}
-
-
-/* 主要内容区域 - 四列布局 */
-.main-content {
-  display: flex;
-  flex: 1;
-}
-
-/* 最左侧边栏 */
-.far-left-sidebar {
-  width: 200px;
-  border-right: 1px solid #eee;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-section {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
-
-.sidebar-title {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 20px;
   margin-bottom: 12px;
 }
 
-.submission-list, .problem-list {
-  list-style-type: none;
-  max-height: 400px; /* 设置最大高度 */
-  overflow-y: auto; /* 启用垂直滚动 */
+.problem-meta {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.submission-item, .problem-item {
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+.problem-info {
+  color: #666;
   font-size: 14px;
+}
+
+.format-box, .sample-box {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 8px 0 16px;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+.limits-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.limit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.limit-item {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.code-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  overflow: hidden; /* 禁止代码面板自身滚动 */
+  padding-top: 60px; /* 确保内容从按钮下方开始 */
+  margin-top: -60px; /* 补偿 main-content 的负 margin */
+}
+
+.editor-section {
+  flex: 1; /* 占据代码面板的剩余空间 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 禁止编辑器区域滚动 */
+  min-height: 0; /* Flexbox hack 防止内容溢出 */
+}
+
+.editor-toolbar {
+  height: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.language-select {
+  padding: 4px 8px;
+  background-color: #3c3c3c;
+  color: white;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+}
+
+.icon-button {
+  padding: 6px;
+  background: none;
+  border: none;
+  color: #ccc;
   cursor: pointer;
+  border-radius: 4px;
 }
 
-.submission-item:last-child, .problem-item:last-child {
-  border-bottom: none;
+.icon-button:hover {
+  background-color: #3c3c3c;
 }
 
-.submission-item:hover, .problem-item:hover {
-  background-color: #f0f0f0;
+.editor-wrapper {
+  flex: 1; /* 编辑器包装器占据 editor-section 的剩余空间 */
+  position: relative;
+  min-height: 0; /* Flexbox hack */
 }
 
-/* 提交详情覆盖层 */
-.submission-details {
+.monaco-editor {
   position: absolute;
   top: 0;
-  left: 0;
   right: 0;
   bottom: 0;
-  background: white;
-  padding: 20px;
-  display: none;
-  overflow-y: auto;
+  left: 0;
 }
 
-.submission-details.active {
-  display: block;
+/* 测试用例面板样式 */
+.testcase-panel {
+  border-top: 1px solid #e0e0e0;
+  background-color: white;
 }
 
-.submission-details h2 {
-  margin-bottom: 20px;
+.testcase-panel.collapsed {
+  height: 40px;
 }
 
-.submission-info {
-  margin-bottom: 20px;
-}
-
-.submission-info p {
-  margin-bottom: 10px;
-}
-
-.close-details {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
+.testcase-header {
+  height: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  background-color: #f7f7f7;
   cursor: pointer;
 }
 
-.status-indicator {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 5px;
-}
-
-.status-accepted {
-  background-color: #52c41a;
-}
-
-.status-wrong {
-  background-color: #f5222d;
-}
-.input-output-container {
-  display: flex;
-  gap: 16px;
-}
-
-.input-section,
-.output-section {
-  flex: 1;
+.testcase-content {
+  height: 200px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 12px;
 }
 
-.input-box,
-.output-box {
-  flex: 1;
+.testcase-input, .testcase-output {
+  margin-bottom: 16px;
+}
+
+.testcase-input textarea {
+  width: 100%;
+  height: 100px;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  padding: 8px;
   font-family: monospace;
-  font-size: 14px;
-  resize: none;
-  background: white;
-}
-.input-box {
-  height: 150px;
-}
-
-.output-box {
-  height: 150px;
-  overflow-y: auto;
-  background: #f5f5f5;
-}
-.compile-error {
-  display: block;
-  color: red;
-  font-size: 12px;
-  margin-top: 4px;
-  word-wrap: break-word; /* 长单词换行 */
-}
-/* 输入输出容器 */
-.input-output-container {
-  display: flex;
-  gap: 16px;
-  align-items: stretch; /* 强制等高 */
-  margin-top: 16px;
-}
-
-/* 标题统一样式 */
-.input-section h3,
-.output-section h3 {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-/* 输入输出区域基础样式 */
-.input-section,
-.output-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* 防止内容溢出 */
-}
-
-/* 统一输入输出框样式 */
-.input-box,
-.output-box {
-  flex: 1;
-  font-family: 'Menlo', 'Consolas', monospace;
-  font-size: 13px;
-  line-height: 1.5;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-y: auto;
-  tab-size: 2;
-  
-  /* 统一滚动条样式 */
-  scrollbar-width: thin;
-  scrollbar-color: #ddd #f5f5f5;
-}
-
-/* 针对 textarea 的特殊处理 */
-.input-box {
   resize: vertical;
-  min-height: 200px;
-  outline: none;
-  transition: border-color 0.2s;
 }
 
-.input-box:focus {
-  border-color: #1890ff;
+.testcase-output pre {
+  background-color: #f5f5f5;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-height: 100px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  margin: 0;
 }
 
-/* 输出框高度同步 */
-.output-box {
-  min-height: 200px;
-  background: #fafafa;
+.testcase-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-/* 统一滚动条样式 */
-.input-box::-webkit-scrollbar,
-.output-box::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.reset-button {
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.input-box::-webkit-scrollbar-track,
-.output-box::-webkit-scrollbar-track {
-  background: #f5f5f5;
+.run-button {
+  padding: 8px 16px;
+  background-color: #52c41a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.input-box::-webkit-scrollbar-thumb,
-.output-box::-webkit-scrollbar-thumb {
-  background-color: #ddd;
-  border-radius: 3px;
+.run-button:hover {
+  background-color: #49ad15;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .problem-description-panel {
+    width: 100%;
+    height: 40%;
+  }
+  
+  .code-panel {
+    height: 60%;
+  }
 }
 </style>

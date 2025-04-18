@@ -1,164 +1,91 @@
 <template>
-  <br>
-  <br>
   <main>
-    <div class="modal-overlay" v-if="showInterestModal" @click="skipInterestSelection"></div>
-    <div class="modal" v-if="showInterestModal">
-      <div class="modal-header">
-        <h2 class="modal-title">选择您感兴趣的算法标签</h2>
-        <button class="modal-close" @click="skipInterestSelection">&times;</button>
-      </div>
-      <div class="modal-content">
-        <div class="interest-tags">
-          <div 
-            v-for="(tag, index) in allTags" 
-            :key="index" 
-            class="interest-tag-card" 
-            :class="{ selected: selectedInterests.includes(tag) }"
-            @click="toggleInterest(tag)"
+    <!-- 知识图谱部分 -->
+    <section class="knowledge-graph-section">
+      <h3 class="section-title">知识图谱</h3>
+      <div class="knowledge-graph-container">
+        <div class="svg-container">
+          <img 
+            src="@/pictures/a.svg" 
+            alt="知识图谱" 
+            class="knowledge-graph-svg"
+            @click="openSvgViewer"
           >
-            <p>{{ tag }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 推荐算法部分 -->
+    <section class="algorithm-section">
+      <h3 class="section-title">推荐算法</h3>
+      <div class="algorithm-container">
+        <div class="algorithm-grid">
+          <div
+            v-for="(problem, index) in recommendedProblems"
+            :key="index"
+            class="algorithm-card"
+            @click="goToProblem(problem.id, problem.title)"
+          >
+            <p>{{ problem.title }}</p>
           </div>
         </div>
-        <div class="modal-actions">
-          <button class="skip-btn" @click="skipInterestSelection">跳过</button>
-          <button class="submit-btn" @click="submitInterests">提交</button>
-        </div>
       </div>
-    </div>
+    </section>
 
-<section class="knowledge-graph-section">
-  <div class="knowledge-graph-container">
-    <h3 class="section-title">知识图谱</h3>
-    <div class="svg-container">
-      <img 
-        src="@/pictures/a.svg" 
-        alt="知识图谱" 
-        class="knowledge-graph-svg"
-        @click="openSvgViewer"
-      >
-    </div>
-  </div>
-</section>
-
-<!-- SVG查看器模态窗口 -->
-<div class="modal-overlay" v-if="showSvgViewer" @click="closeSvgViewer"></div>
-<div class="svg-viewer-modal" v-if="showSvgViewer">
-  <div class="svg-viewer-content" 
-       @mousedown="startDrag"
-       @mousemove="onDrag"
-       @mouseup="stopDrag"
-       @mouseleave="stopDrag"
-       @wheel="onWheel"
-       ref="svgViewer"
-  >
-    <img 
-      src="@/pictures/b.svg" 
-      alt="知识图谱详情" 
-      class="svg-viewer-image"
-      :style="{
-        transform: `translate(-50%, -50%) translate(${dragOffset.x}px, ${dragOffset.y}px) scale(${scale})`
-      }"
-      @load="handleImageLoad"
-      ref="svgImage"
-    >
-  </div>
-</div>
-    <br>
-    <br>
-    <section class="algorithm-section">
-  <div class="section-container">
-    <h3 class="section-title">推荐算法</h3>
-    <div class="algorithm-grid">
-      <div
-        v-for="(problem, index) in recommendedProblems"
-        :key="index"
-        class="algorithm-card"
-        @click="goToProblem(problem.id, problem.title)"
-      >
-        <p>{{ problem.title }}</p>
-      </div>
-    </div>
-  </div>
-</section>
-    <br>
-    <br>
+    <!-- 题单部分 -->
     <section class="section">
       <h3 class="section-title">题单</h3>
-      <div class="problem-grid" id="problemGrid">
-  <div
-    v-for="(problemSet, index) in paginatedProblemSets"
-    :key="index"
-    class="problem-card"
-    @click="openModal(problemSet)"
-  >
-    <div class="problem-content">
-      <div class="problem-image" :class="getProblemSetClass(problemSet.title)"></div>
-      <div class="problem-info">
-        <p>{{ problemSet.title }}</p>
-        <p>题目数量: {{ problemSet.problems.length }}</p>
+      <div class="content-container">
+        <div class="problem-grid">
+          <div
+            v-for="(problemSet, index) in paginatedProblemSets"
+            :key="index"
+            class="problem-card"
+            @click="openModal(problemSet)"
+          >
+            <div class="problem-content">
+              <div class="problem-image" :class="getProblemSetClass(problemSet.title)"></div>
+              <div class="problem-info">
+                <p class="problem-title">{{ problemSet.title }}</p>
+                <p class="problem-count">题目数量: {{ problemSet.problems.length }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pagination">
+          <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+          <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
+          <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
-<div class="pagination">
-  <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
-  <span>第 {{ currentPage }} 页 / 共 {{ totalPages }} 页</span>
-  <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
-</div>
     </section>
   </main>
 
-  <div class="modal-overlay" :style="{ display: modalVisible ? 'block' : 'none' }" @click="closeModal"></div>
-  <div class="modal" :style="{ display: modalVisible ? 'block' : 'none' }">
-  <div class="modal-header">
-    <h2 class="modal-title">《{{ currentProblemSet.title }}》题目练习</h2>
-    <button class="modal-close" @click="closeModal">&times;</button>
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="footer-content">
+      <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
+      <a href="https://beian.miit.gov.cn/" target="_blank" class="beian-link">备案号：鲁ICP备2024065791号</a>
+    </div>
+  </footer>
+
+  <!-- 题单详情模态框 -->
+  <div class="modal-overlay" v-if="modalVisible" @click="closeModal"></div>
+  <div class="modal" v-if="modalVisible">
+    <!-- 模态框内容保持不变 -->
   </div>
-  <div class="modal-content">
-  <div class="modal-stats">
-    共 {{ currentProblemSet.problems.length }} 题
+
+  <!-- SVG查看器 -->
+  <div class="modal-overlay" v-if="showSvgViewer" @click="closeSvgViewer"></div>
+  <div class="svg-viewer-modal" v-if="showSvgViewer">
+    <div class="svg-viewer-content">
+      <img 
+        src="@/pictures/b.svg" 
+        alt="知识图谱详情" 
+        class="svg-viewer-image"
+      >
+    </div>
   </div>
-  <table class="modal-table">
-    <thead>
-      <tr>
-        <th>题号</th>
-        <th>标题</th>
-        <th>通过率</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="problem in currentProblemSet.problems" :key="problem.id">
-        <td>{{ problem.id.toString().padStart(3, '0') }}</td>
-        <td>{{ problem.title }}</td>
-        <td>{{ problem.passRate }}%</td>
-        <td>
-          <RouterLink
-            class="submit-btn"
-            :to="{
-              path: '/program',
-              query: {
-                id: problem.id,
-                title: problem.title,
-                difficulty: problem.difficulty || '未知',
-              },
-            }"
-          >
-            挑战
-          </RouterLink>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-</div>
-<footer class="footer">
-  <div class="footer-content">
-    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
-    <a href="https://beian.miit.gov.cn/" target="_blank" class="beian-link">备案号：鲁ICP备2024065791号</a>
-  </div>
-</footer>
 </template>
 
 <script setup>
@@ -172,6 +99,8 @@ const showInterestModal = ref(false)
 const selectedInterests = ref([])
 const hasCheckedInterest = ref(false)
 const handleTokenExpired = inject('handleTokenExpired');
+const updateUserInfo = inject('updateUserInfo');
+
 const colors = [
   '#FFCDD2', '#F8BBD0', '#E1BEE7', '#D1C4E9', '#C5CAE9', '#BBDEFB',
   '#B3E5FC', '#B2EBF2', '#B2DFDB', '#C8E6C9', '#DCEDC8', '#F0F4C3',
@@ -207,6 +136,11 @@ const recommendedProblems = ref([]); // 存储推荐的题目
 const goToProblem = (id, title) => {
   const token = localStorage.getItem('token');
   if (!token) {
+    localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  // 更新登录状态
+  updateUserInfo();
     alert('请先登录！');
     router.push('/login'); // 跳转到登录页面
     return;
@@ -426,7 +360,7 @@ const modalVisible = ref(false)
 const currentProblemSet = ref({ title: '', problems: [] })
 
 const currentPage = ref(1)
-const pageSize = 6
+const pageSize = 6; // 修改为每页显示6个题单
 const totalPages = computed(() => Math.ceil(problemSets.value.length / pageSize))
 
 const paginatedProblemSets = computed(() => {
@@ -726,169 +660,7 @@ const onWheel = (e) => {
 </script>
 
 <style scoped>
-.knowledge-graph-iframe {
-  width: 100%; /* 占满父容器宽度 */
-  height: 400px; /* 设置高度 */
-  border: none; /* 去掉边框 */
-  border-radius: 8px; /* 添加圆角 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
-  margin-top: 1rem; /* 与上方内容保持间距 */
-}
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #ffffff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  z-index: 1001;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.modal-title {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #999;
-  transition: color 0.2s;
-}
-
-.modal-close:hover {
-  color: #333;
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.interest-tags {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.interest-tag-card {
-  background: linear-gradient(135deg, #e4e3f1, #c2c0d8);
-  border: 2px solid transparent;
-  border-radius: 8px;
-  padding: 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: #223c5B;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.interest-tag-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.interest-tag-card.selected {
-  background: linear-gradient(135deg, #add1f3, #add1f3);
-  border-color: #add1f3;
-  color: #223c5B;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-}
-
-.skip-btn,
-.submit-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
-}
-
-.skip-btn {
-  background-color: #f5f5f5;
-  color: #666;
-}
-
-.skip-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.submit-btn {
-  background-color: #add1f3;
-  color: #ffffff;
-}
-
-.submit-btn:hover {
-  background-color: #add1f3;
-  transform: translateY(-2px);
-}
-.knowledge-graph-section {
-  width: 78%; /* 与题单部分的宽度一致 */
-  margin: auto; /* 居中对齐 */
-  margin-bottom: 2rem;
-}
-.footer {
-  background-color: #f5f5f5;
-  padding: 1rem 0;
-  text-align: center;
-  border-top: 1px solid #ddd;
-  margin-top: 2rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-}
-.knowledge-graph-iframe {
-  width: 100%; /* 占满父容器宽度 */
-  height: 250px; /* 设置高度 */
-  border: none; /* 去掉边框 */
-  border-radius: 8px; /* 添加圆角 */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
-}
-.footer-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.algorithm-section .section-title {
-  margin-left: 8.5rem; /* 向右移动 2rem */
-}
-.footer-logo {
-  width: 40px;
-  height: 40px;
-}
-
-.footer-content p {
-  margin: 0;
-  color: #666;
-  font-size: 0.875rem;
-}
+/* 基础样式重置 */
 * {
   margin: 0;
   padding: 0;
@@ -897,146 +669,175 @@ const onWheel = (e) => {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: rgba(250,255,253,255);
-}
-
-main {
-  padding: 40px;
   background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
 }
 
-.section {
-  margin-bottom: 2rem;
-  width: 78%;
-  margin: auto;
+/* 主要布局容器 */
+main {
+  padding: 70px 0 0 0;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 50px);
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
+/* 统一的section容器样式 */
+.section, .knowledge-graph-section, .algorithm-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* 统一的标题样式 */
 .section-title {
   font-size: 1.25rem;
   font-weight: bold;
-  margin-bottom: 1rem;
-  text-align: left; /* 左对齐标题 */
+  margin-bottom: 1.5rem;
+  color: #333;
+  padding: 0;
+  margin-left: 0;
+  position: relative;
 }
 
-
-/* 知识卡片样式 */
-.knowledge-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+.knowledge-graph-section .section-title {
+  padding-left: 0; /* 确保知识图谱标题对齐 */
 }
 
-.knowledge-card {
+.knowledge-graph-container {
   background: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.knowledge-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.knowledge-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.knowledge-icon {
-  font-size: 2rem;
-}
-
-.knowledge-info h3 {
-  margin-bottom: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.knowledge-info p {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-/* 算法网格样式 */
-.algorithm-grid {
-  display: flex;
-  flex-wrap: nowrap; /* 禁止换行 */
-  overflow-x: auto; /* 水平滚动 */
-  gap: 1rem;
-  width: 100%;
-  height:100px;
-  max-width: 78%;
-  margin: auto;
-  padding-bottom: 1rem; /* 为滚动条留出空间 */
-  -webkit-overflow-scrolling: touch; /* 平滑滚动 */
-}
-.algorithm-card {
-  flex: 0 0 auto; /* 不伸缩，不收缩，自动宽度 */
-  min-width: 200px; /* 最小宽度 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-size: 1rem;
-  font-weight: bold;
-  color: #616060;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  background: linear-gradient(90deg, #dde7f3, #ffffff);
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
 }
-.algorithm-grid::-webkit-scrollbar {
-  display: none;
+
+.algorithm-section .section-title {
+  padding-left: 0; /* 确保算法部分标题对齐 */
+}
+
+/* 推荐算法容器 */
+.algorithm-container {
+  width: 100%;
+  overflow: hidden; /* 防止水平滚动影响页面布局 */
+}
+
+/* 推荐算法网格 */
+.algorithm-grid {
+  width: 100%;
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 1rem; /* 为可能的滚动条预留空间 */
+}
+
+.algorithm-card {
+  flex: 0 0 calc(25% - 0.75rem);
+  min-width: 200px;
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
 .algorithm-card:hover {
-  transform: translateY(-5px); /* 鼠标悬停时上移 */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 鼠标悬停时阴影加深 */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.algorithm-card.placeholder {
-  background: linear-gradient(135deg, #d4fc79, #96e6a1); /* 更柔和的浅绿色渐变背景 */
-  border-radius: 0.5rem;
-  cursor: default;
-  pointer-events: none;
-}
-
-/* 问题网格样式 */
+/* 题单网格 */
 .problem-grid {
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-/* 确保推荐算法和题单的卡片左右对齐 */
-.knowledge-graph-section .knowledge-graph,
-.algorithm-section .algorithm-grid {
-  width: 100%; /* 确保内容宽度一致 */
+/* 统一的内容容器样式 */
+.content-container {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
 }
+
+/* 页脚样式 */
+.footer {
+  background-color: #f5f5f5;
+  padding: 0.5rem 0;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  margin-top: auto;
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+/* 移除多余的空白 */
+br {
+  display: none;
+}
+
+/* 标题样式 */
+.section-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+/* 确保内容区域正确填充 */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 卡片样式 */
+.algorithm-card, .problem-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .problem-card {
   background: white;
   padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: transform 0.2s;
 }
 
 .problem-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .problem-content {
   display: flex;
   gap: 1rem;
 }
-
+.algorithm-section .section-title {
+  margin-left: 8rem; /* 减少左边距，向左移动 */
+}
 .problem-image {
   width: 4rem;
   height: 4rem;
@@ -1058,31 +859,33 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-top: 1px solid #eee;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem 0;
 }
 
 .pagination button {
-  padding: 4px 8px;
-  border: 1px solid #1890ff;
+  padding: 0.5rem 1rem;
+  border: 1px solid #84caf9;
   border-radius: 4px;
-  background: #e6f7ff;
-  color: #1890ff;
+  background: white;
+  color: #84caf9;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 12px;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #84caf9;
+  color: white;
 }
 
 .pagination button:disabled {
-  border-color: #ddd;
-  background: #f5f5f5;
-  color: #999;
+  border-color: #ccc;
+  color: #ccc;
   cursor: not-allowed;
 }
 
 .pagination span {
-  font-size: 12px;
   color: #666;
 }
 
@@ -1936,63 +1739,44 @@ main {
 }
 
 .svg-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 1rem;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
 }
 
 .knowledge-graph-svg {
-  max-width: 100%;
+  width: 100%;
   height: auto;
-  background-color: transparent;
+  display: block;
+  cursor: pointer;
 }
 
+/* 移除SVG查看器的动画效果 */
 .svg-viewer-modal {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90vw;
-  height: 90vh;
-  background-color: white;
-  border-radius: 20px;
-  overflow: hidden;
-  z-index: 1001;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
 }
 
 .svg-viewer-content {
   width: 100%;
   height: 100%;
   position: relative;
-  overflow: hidden;
-  cursor: grab;
-  user-select: none; /* 防止文字选中 */
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  background-color: #f5f5f5;
-}
-
-.svg-viewer-content:active {
-  cursor: grabbing;
+  overflow: auto;
 }
 
 .svg-viewer-image {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center center;
-  transition: transform 0.1s ease;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  width: auto;
-  height: auto;
-  max-width: none;
-  max-height: none;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .beian-link {
@@ -2012,5 +1796,10 @@ main {
 
 .knowledge-graph-svg:hover {
   transform: scale(1.05);
+}
+
+.footer-logo {
+  width: 30px;  /* 从40px改回30px */
+  height: 30px; /* 从40px改回30px */
 }
 </style>

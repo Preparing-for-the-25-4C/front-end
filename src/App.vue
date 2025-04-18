@@ -1,40 +1,41 @@
 <template>
-  <nav class="navbar" id="body">
-    <div class="nav-links">
-      <img src="@/pictures/logo.jpg" alt="Logo" class="navbar-logo">
-      <RouterLink to="/" active-class="active">首页</RouterLink>
-      <RouterLink to="/questionbank" active-class="active">题库</RouterLink>
-      <RouterLink to="/testingrecord" active-class="active">评测记录</RouterLink>
-      <RouterLink to="/rank" active-class="active">排名</RouterLink>
-    </div>
-    <div class="nav-right">
-      <div v-if="isLoggedIn">
-        <!-- 显示用户头像 -->
-        <img :src="avatar" alt="Avatar" class="avatar"> 
-        <!-- 显示用户名 -->
-        <span @click="toggleDropdown" class="username-span">{{ username }}</span>
-        <!-- 下拉框 -->
-        <div v-if="isDropdownVisible" class="dropdown">
-          <RouterLink to="/profile">个人主页</RouterLink>
-          <RouterLink to="/login" @click="logout">退出登录</RouterLink>
+  <div id="app">
+    <LoadingAnimation v-if="isLoading" />
+    <nav class="navbar" id="body">
+      <div class="nav-links">
+        <img src="@/pictures/logo.png" alt="Logo" class="navbar-logo">
+        <RouterLink to="/" active-class="active">首页</RouterLink>
+        <RouterLink to="/questionbank" active-class="active">题库</RouterLink>
+        <RouterLink to="/testingrecord" active-class="active">评测记录</RouterLink>
+        <RouterLink to="/rank" active-class="active">排名</RouterLink>
+      </div>
+      <div class="nav-right">
+        <div v-if="isLoggedIn">
+          <img :src="avatar" alt="Avatar" class="avatar"> 
+          <span @click="toggleDropdown" class="username-span">{{ username }}</span>
+          <div v-if="isDropdownVisible" class="dropdown">
+            <RouterLink to="/profile">个人主页</RouterLink>
+            <RouterLink to="/login" @click="logout">退出登录</RouterLink>
+          </div>
+        </div>
+        <div v-else>
+          <RouterLink to="/login">登录</RouterLink>
+          &nbsp;&nbsp;&nbsp;&nbsp;
+          <RouterLink to="/register">注册</RouterLink>
         </div>
       </div>
-      <div v-else>
-        <!-- 未登录时显示登录和注册链接 -->
-        <RouterLink to="/login">登录</RouterLink>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <RouterLink to="/register">注册</RouterLink>
-      </div>
+    </nav>
+    <div class="router-view-container">
+      <RouterView></RouterView>
     </div>
-  </nav>
-  <div>
-    <RouterView></RouterView>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, provide } from 'vue';
 import { RouterView, RouterLink, useRouter } from 'vue-router';
+import LoadingAnimation from './components/LoadingAnimation.vue';
+import axios from 'axios';
 
 // 定义是否登录的状态
 const isLoggedIn = ref(false);
@@ -45,43 +46,72 @@ const avatar = ref('');
 // 控制下拉框显示隐藏
 const isDropdownVisible = ref(false); 
 const router = useRouter();
+const isLoading = ref(false);
+
+// 添加请求拦截器
+axios.interceptors.request.use(config => {
+  isLoading.value = true;
+  return config;
+});
+
+// 添加响应拦截器
+axios.interceptors.response.use(
+  response => {
+    isLoading.value = false;
+    return response;
+  },
+  error => {
+    isLoading.value = false;
+    return Promise.reject(error);
+  }
+);
 
 // 更新用户信息的函数
 const updateUserInfo = () => {
   const token = localStorage.getItem('token');
-  if (token) {
-    isLoggedIn.value = true;
-    username.value = localStorage.getItem('username') || '';
-    avatar.value = localStorage.getItem('avatar') || '';
-  } else {
-    isLoggedIn.value = false;
-    username.value = '';
-    avatar.value = '';
-  }
+  const storedUsername = localStorage.getItem('username');
+  const storedAvatar = localStorage.getItem('avatar');
+  
+  isLoggedIn.value = !!token;
+  username.value = storedUsername || '';
+  avatar.value = storedAvatar || '';
 };
 
-// 处理 token 过期错误
+// 处理token过期的函数
 const handleTokenExpired = () => {
-  alert('登录已过期，请重新登录！');
   localStorage.removeItem('token');
   localStorage.removeItem('username');
   localStorage.removeItem('avatar');
-  isLoggedIn.value = false;
+  updateUserInfo();
   router.push('/login');
 };
 
-// 退出登录函数
-const logout = () => {
-  // 清除 localStorage 中的登录信息
-  localStorage.removeItem('token');
-  localStorage.removeItem('username');
-  localStorage.removeItem('avatar');
-  // 更新登录状态
-  updateUserInfo();
-  // 隐藏下拉框
-  isDropdownVisible.value = false; 
-  // 跳转到登录页面
-  router.push('/login');
+// 提供这些函数给子组件使用
+provide('updateUserInfo', updateUserInfo);
+provide('handleTokenExpired', handleTokenExpired);
+
+// 检查token是否有效
+const checkTokenValidity = async () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    updateUserInfo();
+    return;
+  }
+
+  try {
+    const response = await axios.get('/api/checkToken', {
+      headers: { Token: token }
+    });
+    
+    if (response.data.errCode === 1006) {
+      handleTokenExpired();
+    } else {
+      updateUserInfo();
+    }
+  } catch (error) {
+    console.error('检查token失败:', error);
+    handleTokenExpired();
+  }
 };
 
 // 切换下拉框显示状态
@@ -89,31 +119,28 @@ const toggleDropdown = () => {
   isDropdownVisible.value = !isDropdownVisible.value;
 };
 
-// 点击页面其他地方关闭下拉框
-const handleClickOutside = (event: MouseEvent) => {
+// 点击其他地方关闭下拉框
+const handleClickOutside = (event) => {
   const dropdown = document.querySelector('.dropdown');
-  const usernameElement = document.querySelector('.username-span');
-  if (
-    isDropdownVisible.value && 
-    dropdown && 
-    usernameElement && 
-    (!dropdown.contains(event.target as Node) && !usernameElement.contains(event.target as Node))
-  ) {
+  const usernameSpan = document.querySelector('.username-span');
+  
+  if (dropdown && usernameSpan && 
+      !dropdown.contains(event.target) && 
+      !usernameSpan.contains(event.target)) {
     isDropdownVisible.value = false;
   }
 };
 
-// 模拟接口请求，检查 token 是否过期
-const checkTokenValidity = async () => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    isLoggedIn.value = false;
-    return;
-  }
+// 退出登录
+const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  updateUserInfo();
+  isDropdownVisible.value = false;
 };
 
 onMounted(() => {
-  updateUserInfo();
   checkTokenValidity();
   document.addEventListener('click', handleClickOutside);
 });
@@ -121,41 +148,59 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
 });
-
-// 提供更新用户信息的函数
-provide('updateUserInfo', updateUserInfo);
-provide('handleTokenExpired', handleTokenExpired);
 </script>
 
 <style scoped>
+#app {
+  width: 100%;
+  height: 100vh;
+  overflow: auto;
+}
+
 #body {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   z-index: 999;
+  margin: 0;
+  padding: 0;
 }
 
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0.5rem;
-  background: linear-gradient(90deg, #e6e6fa, white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid #ddd;
+  padding: 0;
+  height: 60px;
+  background: linear-gradient(90deg, #84caf9, white);
+  box-shadow: none;
+  border-bottom: none;
+}
+
+.router-view-container {
+  margin-top: 60px;
+  min-height: calc(100vh - 60px);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 4px;
 }
 
 .nav-links a {
-  color: #161516;
+  color: #f6f5f6;
   text-decoration: none;
-  margin-right: 1rem;
+  font-size: 1.15rem;
 }
 
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
+  margin-right: 2rem;
 }
 
 .nav-right a {
@@ -168,7 +213,7 @@ provide('handleTokenExpired', handleTokenExpired);
 }
 
 .nav-links a.active {
-  color: #797ca3;
+  color: white;
   font-weight: bold;
   text-decoration: none;
 }
@@ -205,11 +250,14 @@ provide('handleTokenExpired', handleTokenExpired);
 
 .username-span {
   cursor: pointer;
+  position: relative;
+  top: -5px;
 }
 
 .navbar-logo {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   margin-right: 1rem;
+  margin-left: 4rem;
 }
 </style>

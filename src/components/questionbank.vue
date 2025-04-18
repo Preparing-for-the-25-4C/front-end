@@ -225,7 +225,7 @@
   </div>
   <footer class="footer">
   <div class="footer-content">
-    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
     <p>备案号：鲁ICP备2024065791号</p>
   </div>
 </footer>
@@ -236,6 +236,8 @@ import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { inject } from 'vue';
+const updateUserInfo = inject('updateUserInfo');
 const recommendedProblems = ref([]); 
 const router = useRouter();
 const Token = ref();
@@ -326,6 +328,12 @@ const problems = ref([]);
 const goToProblem = (id, title) => {
   const token = localStorage.getItem('token');
   if (!token) {
+    localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  // 更新登录状态
+  updateUserInfo();
+
     alert('请先登录！');
     router.push('/login'); // 跳转到登录页面
     return;
@@ -559,7 +567,7 @@ onMounted(() => {
 .difficulty-simple {
   display: inline-block;
   padding: 0.2rem 0.5rem; /* 内边距调整矩形大小 */
-  background-color: #B8D0D9; /* 设置背景色 */
+  background-color: #91dffc; /* 设置背景色 */
   border-radius: 8px; /* 圆角矩形 */
   color:white; /* 字体颜色为白色 */
   font-size: 0.875rem; /* 字体大小 */
@@ -621,7 +629,7 @@ body {
 
 .algorithm-card {
   height: 8rem;
-  background: linear-gradient(135deg, #dde7f3, white); /* 浅蓝色渐变背景 */
+  background: rgb(228, 244, 255); /* 浅蓝色渐变背景 */
   border-radius: 0.5rem;
   display: flex;
   justify-content: center;

@@ -10,10 +10,6 @@
             <input type="text" class="filter-input" v-model="filters.problem" @keyup.enter="applyFilters">
           </div>
           <div class="filter-item">
-            <label>由比赛</label>
-            <input type="text" class="filter-input" v-model="filters.contest" @keyup.enter="applyFilters">
-          </div>
-          <div class="filter-item">
             <label>由状态</label>
             <select class="filter-select" v-model="filters.status">
               <option value="">全部</option>
@@ -74,7 +70,7 @@
   </div>
   <footer class="footer">
   <div class="footer-content">
-    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
+    <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
     <p>备案号：鲁ICP备2024065791号</p>
   </div>
 </footer>
@@ -84,6 +80,8 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router';
+import { inject } from 'vue';
+const updateUserInfo = inject('updateUserInfo');
 
 const router = useRouter();
 const Token = ref(localStorage.getItem('token'));
@@ -132,6 +130,11 @@ const fetchAllData = async () => {
         }
       } else {
         if (response.data.errCode === 1001) {
+          localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  // 更新登录状态
+  updateUserInfo();
         alert('请先登录！');
         router.push('/login'); // 跳转到登录页面
       }
@@ -148,6 +151,11 @@ const fetchAllData = async () => {
         alert('用户名已存在');
       }
       if(response.data.errCode === 1006){
+        localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  // 更新登录状态
+  updateUserInfo();
         alert('请先登录！');
         router.push('/login'); // 跳转到登录页面
       }
@@ -241,6 +249,11 @@ const handleError = (errCode) => {
   // 保持原有的错误处理逻辑
   switch (errCode) {
     case 1001:
+    localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('avatar');
+  // 更新登录状态
+  updateUserInfo();
       alert('请先登录！');
       router.push('/login');
       break;
@@ -329,7 +342,7 @@ onMounted(() => {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  width: 180px;
+  width: 250px;
 }
 
 .filter-input:focus,
@@ -362,9 +375,9 @@ onMounted(() => {
 }
 
 .filter-button.primary {
-  background: #9597be;
+  background: #97e1f7;
   color: white;
-  border-color: #9597be;
+  border-color: #97ecf9;
   width: 70px;
 }
 

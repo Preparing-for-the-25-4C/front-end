@@ -41,8 +41,9 @@
   </div>
   <footer class="footer">
   <div class="footer-content">
-    <img src="@/pictures/logo.jpg" alt="Logo" class="footer-logo">
-    <p>备案号：鲁ICP备2024065791号</p>
+    <img src="@/pictures/logo.png" alt="Logo" class="footer-logo">
+    <p><a href="https://beian.miit.gov.cn/" target="_blank">鲁ICP备2024065791号</a></p>
+    
   </div>
 </footer>
 </template>
